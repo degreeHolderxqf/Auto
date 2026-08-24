@@ -3,6 +3,7 @@ const http = require("http");
 const { URL } = require("url");
 const normalizer = require("../services/normalizer");
 const validator = require("../services/validator");
+const employeeVerifier = require("../services/employeeVerifier");
 const logger = require("../services/logger");
 
 function fetchUrl(targetUrl, timeout = 10000) {
@@ -49,12 +50,12 @@ function fetchUrl(targetUrl, timeout = 10000) {
 
 class CompanyWebsiteProvider {
   /**
-   * Crawls a company website and its subpages for contacts, careers URLs, and Shopify app evidence.
+   * Crawls a company website and its subpages for contacts, careers URLs, employee headcount, and Shopify app evidence.
    */
   async researchWebsite(domain, officialWebsite = null) {
     const cleanDomain = normalizer.normalizeDomain(domain || officialWebsite);
     if (!cleanDomain) {
-      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], sources: [] };
+      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null, sources: [] };
     }
 
     const startUrls = [
@@ -76,12 +77,13 @@ class CompanyWebsiteProvider {
     }
 
     if (!homepageHtml) {
-      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], sources: [] };
+      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null, sources: [] };
     }
 
     const discoveredContacts = [];
     const sources = [];
     const publicApps = [];
+    const crawledPagesHtml = [];
     let careersUrl = null;
     let linkedInUrl = null;
 
@@ -120,7 +122,7 @@ class CompanyWebsiteProvider {
     const targetSubpagePatterns = [
       /href=["']([^"']*(?:career|jobs?|join|work-with-us|opportunities)[^"']*)["']/gi,
       /href=["']([^"']*(?:contact|connect|reach-us)[^"']*)["']/gi,
-      /href=["']([^"']*(?:about|team|people|leadership)[^"']*)["']/gi
+      /href=["']([^"']*(?:about|team|people|leadership|company)[^"']*)["']/gi
     ];
 
     const subpageUrls = new Set();
@@ -153,6 +155,8 @@ class CompanyWebsiteProvider {
 
       const pageRes = await fetchUrl(subUrl);
       if (pageRes.status === 200 && pageRes.html) {
+        crawledPagesHtml.push(pageRes.html);
+
         const pageEmails = validator.extractEmails(pageRes.html);
         pageEmails.forEach((email) => {
           discoveredContacts.push({
@@ -205,11 +209,26 @@ class CompanyWebsiteProvider {
       }
     }
 
+    // 3. Extract Employee Headcount Evidence from Homepage and Subpages
+    let employeeEvidence = employeeVerifier.parseHeadcountEvidence(homepageHtml, "Official Website Homepage", effectiveBaseUrl);
+
+    if (employeeEvidence.status === "UNKNOWN" || employeeEvidence.status === "NEED_MORE_VERIFICATION") {
+      for (const pageHtml of crawledPagesHtml) {
+        const subEmp = employeeVerifier.parseHeadcountEvidence(pageHtml, "Company About/Careers Page", effectiveBaseUrl);
+        if (subEmp.status !== "UNKNOWN") {
+          employeeEvidence = subEmp;
+          if (subEmp.status === "QUALIFIED") break;
+        }
+      }
+    }
+
     return {
       contacts: uniqueContacts,
       careersUrl,
       linkedInUrl,
       publicApps,
+      employeeInfo: employeeEvidence,
+      employeeEvidence,
       sources
     };
   }

@@ -169,7 +169,7 @@ class EmailSender {
 
       if (result.success) {
         sentCount++;
-        db.updateCompanyStatus(company.id, "SENT", `Email sent to ${contact.email}`);
+        db.updateCompanyStatus(company.id, "CONTACTED", `Email sent to ${contact.email}`);
         db.addEmailLog({
           company_id: company.id,
           contact_id: contact.id,
@@ -179,7 +179,14 @@ class EmailSender {
           message_id: result.messageId,
           attempts: result.attempts
         });
-        logger.success(`Email ${isDryRun ? "simulated" : "sent"} to ${contact.email}`);
+        // Permanently exclude from all future lead searches
+        try {
+          const exclusionService = require("./exclusionService");
+          exclusionService.addExclusion(company.name, company.domain, `Contacted Lead (${contact.email})`);
+        } catch (e) {
+          // ignore
+        }
+        logger.success(`Email ${isDryRun ? "simulated" : "sent"} to ${contact.email} -> Company marked as CONTACTED`);
       } else {
         failedCount++;
         db.updateCompanyStatus(company.id, "FAILED", result.error);

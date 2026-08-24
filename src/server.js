@@ -160,10 +160,11 @@ function startServer(port = process.env.PORT || 3000) {
         return;
       }
 
-      // 6. Exclusions API
+      // 6. Exclusions & Contacted API
       if (pathname === "/api/exclusions" && req.method === "GET") {
         const exclusions = db.getAllExclusions();
-        sendJson(res, 200, { success: true, count: exclusions.length, exclusions });
+        const contacted = db.getContactedLeads();
+        sendJson(res, 200, { success: true, count: exclusions.length, exclusions, contacted });
         return;
       }
 

@@ -43,10 +43,16 @@ async function runLeadGeneration(options = {}) {
       errorsCount++;
     }
 
-    // Check if we have gathered enough qualified leads with ready contacts
-    const readyLeads = db.getAllCompanies({ status: "READY", minAppRelevanceScore: minRelevance });
+    // Check if we have gathered enough qualified leads with ready contacts and headcount >= 30
+    const readyLeads = db.getAllCompanies({
+      status: "READY",
+      minAppRelevanceScore: minRelevance,
+      minEmployees: 30,
+      verifiedOnly: true
+    });
+
     if (readyLeads.length >= targetLeads && processedCount >= 50) {
-      logger.success(`Reached target of ${targetLeads} qualified leads with verified contacts!`);
+      logger.success(`Reached target of ${targetLeads} qualified leads with verified contacts and employee_count >= 30!`);
       break;
     }
 
@@ -58,24 +64,28 @@ async function runLeadGeneration(options = {}) {
   logger.section("Generating Output Files");
   await exportService.exportAll();
 
-  // 3. Print Final Report
+  // 3. Print Final Report with actual verification breakdown metrics
   const stats = db.getStatistics();
   const finalLeads = db.getFinalQualifiedLeads(targetLeads);
 
   logger.section("Final Lead Generation Report");
-  console.log(`📊 Partners Discovered     : ${stats.totalDiscovered}`);
-  console.log(`🏢 Candidates Evaluated    : ${stats.candidates}`);
-  console.log(`🚫 Excluded / Past History  : ${stats.excluded}`);
-  console.log(`🔄 Existing Duplicates     : ${stats.duplicates}`);
+  console.log(`📊 Partners Discovered       : ${stats.totalDiscovered}`);
+  console.log(`🏢 Candidates Evaluated      : ${stats.candidates}`);
+  console.log(`🚫 Excluded / Past History    : ${stats.excluded}`);
+  console.log(`🔄 Existing Duplicates       : ${stats.duplicates}`);
+  console.log(`👥 Employee Size Verified    : ${stats.employeeVerified} (>= 30 verified)`);
+  console.log(`📉 Employee Size Too Low     : ${stats.employeeTooLow} (< 30 rejected)`);
+  console.log(`❓ Employee Size Uncertain   : ${stats.employeeUncertain} (Needs verification)`);
+  console.log(`⚠️  Employee Size Conflicting : ${stats.employeeConflicting}`);
   console.log(`⭐ Qualified (Score >= ${minRelevance}) : ${stats.qualified}`);
-  console.log(`📧 Total Real Contacts     : ${stats.totalContacts}`);
-  console.log(`🔒 HIGH Confidence         : ${stats.highConfidence}`);
-  console.log(`🛡️  MEDIUM Confidence       : ${stats.mediumConfidence}`);
-  console.log(`❓ No Public Contact       : ${stats.noContact}`);
-  console.log(`🎯 Final Selected Leads    : ${finalLeads.length}`);
-  console.log(`📤 Ready for Outreach      : ${stats.readyToSend}`);
-  console.log(`✉️  Previously Sent Emails  : ${stats.sent}`);
-  console.log(`❌ Errors Encountered      : ${errorsCount}`);
+  console.log(`📧 Total Real Contacts       : ${stats.totalContacts}`);
+  console.log(`🔒 HIGH Confidence           : ${stats.highConfidence}`);
+  console.log(`🛡️  MEDIUM Confidence         : ${stats.mediumConfidence}`);
+  console.log(`❓ No Public Contact         : ${stats.noContact}`);
+  console.log(`🎯 Final Active Leads        : ${finalLeads.length}`);
+  console.log(`📤 Ready for Outreach        : ${stats.readyToSend}`);
+  console.log(`✉️  Previously Sent Emails    : ${stats.sent}`);
+  console.log(`❌ Errors Encountered        : ${errorsCount}`);
   console.log("=".repeat(60));
 
   return {

@@ -14,6 +14,15 @@ function runMigrations(db) {
       partner_tier TEXT,
       rating REAL,
       reviews INTEGER DEFAULT 0,
+      employee_count INTEGER,
+      employee_count_min INTEGER,
+      employee_count_max INTEGER,
+      employee_size_range TEXT,
+      employee_count_source TEXT,
+      employee_count_source_url TEXT,
+      employee_count_verified INTEGER DEFAULT 0,
+      employee_count_verified_at TEXT,
+      employee_count_status TEXT DEFAULT 'UNKNOWN',
       app_relevance_score INTEGER DEFAULT 0,
       lead_score INTEGER DEFAULT 0,
       shopify_services TEXT,
@@ -25,11 +34,50 @@ function runMigrations(db) {
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
-
-    CREATE INDEX IF NOT EXISTS idx_companies_domain ON companies(domain);
-    CREATE INDEX IF NOT EXISTS idx_companies_status ON companies(status);
-    CREATE INDEX IF NOT EXISTS idx_companies_lead_score ON companies(lead_score);
   `);
+
+  // Migration: Add missing columns if existing table was created in older schema
+  try {
+    const tableInfo = db.prepare("PRAGMA table_info(companies)").all();
+    const columnNames = tableInfo.map((c) => c.name);
+
+    const columnsToAdd = [
+      { name: "employee_count", type: "INTEGER" },
+      { name: "employee_count_min", type: "INTEGER" },
+      { name: "employee_count_max", type: "INTEGER" },
+      { name: "employee_size_range", type: "TEXT" },
+      { name: "employee_count_source", type: "TEXT" },
+      { name: "employee_count_source_url", type: "TEXT" },
+      { name: "employee_count_verified", type: "INTEGER DEFAULT 0" },
+      { name: "employee_count_verified_at", type: "TEXT" },
+      { name: "employee_count_status", type: "TEXT DEFAULT 'UNKNOWN'" }
+    ];
+
+    for (const col of columnsToAdd) {
+      if (!columnNames.includes(col.name)) {
+        try {
+          db.exec(`ALTER TABLE companies ADD COLUMN ${col.name} ${col.type};`);
+        } catch (alterErr) {
+          // ignore column exists
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // Create Indexes on Companies table after columns are guaranteed to exist
+  try {
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_companies_domain ON companies(domain);
+      CREATE INDEX IF NOT EXISTS idx_companies_status ON companies(status);
+      CREATE INDEX IF NOT EXISTS idx_companies_lead_score ON companies(lead_score);
+      CREATE INDEX IF NOT EXISTS idx_companies_employee_count ON companies(employee_count);
+      CREATE INDEX IF NOT EXISTS idx_companies_employee_status ON companies(employee_count_status);
+    `);
+  } catch (e) {
+    // ignore
+  }
 
   // 2. Contacts Table
   db.exec(`

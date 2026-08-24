@@ -65,6 +65,15 @@ const db = {
           partner_tier = COALESCE(?, partner_tier),
           rating = COALESCE(?, rating),
           reviews = COALESCE(?, reviews),
+          employee_count = COALESCE(?, employee_count),
+          employee_count_min = COALESCE(?, employee_count_min),
+          employee_count_max = COALESCE(?, employee_count_max),
+          employee_size_range = COALESCE(?, employee_size_range),
+          employee_count_source = COALESCE(?, employee_count_source),
+          employee_count_source_url = COALESCE(?, employee_count_source_url),
+          employee_count_verified = COALESCE(?, employee_count_verified),
+          employee_count_verified_at = COALESCE(?, employee_count_verified_at),
+          employee_count_status = COALESCE(?, employee_count_status),
           app_relevance_score = CASE WHEN ? > 0 THEN ? ELSE app_relevance_score END,
           lead_score = CASE WHEN ? > 0 THEN ? ELSE lead_score END,
           shopify_services = COALESCE(?, shopify_services),
@@ -89,6 +98,15 @@ const db = {
         companyData.partner_tier || null,
         companyData.rating != null ? Number(companyData.rating) : null,
         companyData.reviews != null ? Number(companyData.reviews) : null,
+        companyData.employee_count != null ? Number(companyData.employee_count) : null,
+        companyData.employee_count_min != null ? Number(companyData.employee_count_min) : null,
+        companyData.employee_count_max != null ? Number(companyData.employee_count_max) : null,
+        companyData.employee_size_range || null,
+        companyData.employee_count_source || companyData.employee_source || null,
+        companyData.employee_count_source_url || null,
+        companyData.employee_count_verified != null ? (companyData.employee_count_verified ? 1 : 0) : null,
+        companyData.employee_count_verified_at || null,
+        companyData.employee_count_status || null,
         companyData.app_relevance_score || 0,
         companyData.app_relevance_score || 0,
         companyData.lead_score || 0,
@@ -110,11 +128,17 @@ const db = {
         INSERT INTO companies (
           name, normalized_name, domain, shopify_partner_url, official_website,
           city, state, country, partner_tier, rating, reviews,
+          employee_count, employee_count_min, employee_count_max, employee_size_range,
+          employee_count_source, employee_count_source_url, employee_count_verified,
+          employee_count_verified_at, employee_count_status,
           app_relevance_score, lead_score, shopify_services, public_apps,
           careers_url, linkedin_url, status, notes, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?,
+          ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?, datetime('now')
         )
@@ -132,6 +156,15 @@ const db = {
         companyData.partner_tier || null,
         companyData.rating != null ? Number(companyData.rating) : null,
         companyData.reviews != null ? Number(companyData.reviews) : 0,
+        companyData.employee_count != null ? Number(companyData.employee_count) : null,
+        companyData.employee_count_min != null ? Number(companyData.employee_count_min) : null,
+        companyData.employee_count_max != null ? Number(companyData.employee_count_max) : null,
+        companyData.employee_size_range || null,
+        companyData.employee_count_source || companyData.employee_source || null,
+        companyData.employee_count_source_url || null,
+        companyData.employee_count_verified ? 1 : 0,
+        companyData.employee_count_verified_at || null,
+        companyData.employee_count_status || "UNKNOWN",
         companyData.app_relevance_score || 0,
         companyData.lead_score || 0,
         companyData.shopify_services ? (typeof companyData.shopify_services === "object" ? JSON.stringify(companyData.shopify_services) : companyData.shopify_services) : null,
@@ -146,10 +179,22 @@ const db = {
     }
   },
 
+  getCompanyById(id) {
+    const database = getDatabase();
+    const stmt = database.prepare("SELECT * FROM companies WHERE id = ?");
+    return stmt.get(id);
+  },
+
   getCompanyByNormalizedName(normalizedName) {
     const database = getDatabase();
     const stmt = database.prepare("SELECT * FROM companies WHERE normalized_name = ?");
     return stmt.get(normalizedName);
+  },
+
+  getCompanyByDomain(domain) {
+    const database = getDatabase();
+    const stmt = database.prepare("SELECT * FROM companies WHERE domain = ?");
+    return stmt.get(domain);
   },
 
   getCompanyByShopifyUrl(url) {
@@ -159,39 +204,35 @@ const db = {
     return stmt.get(url);
   },
 
-  getCompanyByDomain(domain) {
-    if (!domain) return null;
+  getAllCompanies(filters = {}) {
     const database = getDatabase();
-    const stmt = database.prepare("SELECT * FROM companies WHERE domain = ?");
-    return stmt.get(domain);
-  },
-
-  getCompanyById(id) {
-    const database = getDatabase();
-    const stmt = database.prepare("SELECT * FROM companies WHERE id = ?");
-    return stmt.get(id);
-  },
-
-  getAllCompanies(options = {}) {
-    const database = getDatabase();
-    let query = "SELECT * FROM companies";
+    let query = "SELECT * FROM companies WHERE 1=1";
     const params = [];
 
-    if (options.status) {
-      query += " WHERE status = ?";
-      params.push(options.status);
+    if (filters.status) {
+      query += " AND status = ?";
+      params.push(filters.status);
+    }
+    if (filters.minAppRelevanceScore) {
+      query += " AND app_relevance_score >= ?";
+      params.push(filters.minAppRelevanceScore);
+    }
+    if (filters.minLeadScore) {
+      query += " AND lead_score >= ?";
+      params.push(filters.minLeadScore);
+    }
+    if (filters.minEmployees) {
+      query += " AND (employee_count >= ? OR employee_count_min >= ?)";
+      params.push(filters.minEmployees, filters.minEmployees);
+    }
+    if (filters.verifiedOnly) {
+      query += " AND employee_count_verified = 1 AND employee_count_status = 'QUALIFIED'";
     }
 
-    if (options.minAppRelevanceScore) {
-      query += (params.length ? " AND" : " WHERE") + " app_relevance_score >= ?";
-      params.push(options.minAppRelevanceScore);
-    }
+    query += " ORDER BY lead_score DESC, app_relevance_score DESC, rating DESC";
 
-    query += " ORDER BY lead_score DESC, app_relevance_score DESC, reviews DESC";
-
-    if (options.limit) {
-      query += " LIMIT ?";
-      params.push(options.limit);
+    if (filters.limit) {
+      query += ` LIMIT ${parseInt(filters.limit, 10)}`;
     }
 
     const stmt = database.prepare(query);
@@ -200,24 +241,25 @@ const db = {
 
   updateCompanyStatus(id, status, notes = null) {
     const database = getDatabase();
-    const stmt = database.prepare(`
-      UPDATE companies 
-      SET status = ?, notes = COALESCE(?, notes), updated_at = datetime('now')
-      WHERE id = ?
-    `);
-    stmt.run(status, notes, id);
+    if (notes) {
+      const stmt = database.prepare("UPDATE companies SET status = ?, notes = ?, updated_at = datetime('now') WHERE id = ?");
+      stmt.run(status, notes, id);
+    } else {
+      const stmt = database.prepare("UPDATE companies SET status = ?, updated_at = datetime('now') WHERE id = ?");
+      stmt.run(status, id);
+    }
+    return this.getCompanyById(id);
   },
 
   // Contact CRUD
   upsertContact(contactData) {
     const database = getDatabase();
-    const cleanEmail = contactData.email.toLowerCase().trim();
-    const existing = this.getContactByEmail(cleanEmail);
+    const existing = database.prepare("SELECT * FROM contacts WHERE email = ?").get(contactData.email);
 
     if (existing) {
-      const updateStmt = database.prepare(`
+      const stmt = database.prepare(`
         UPDATE contacts SET
-          company_id = ?,
+          company_id = COALESCE(?, company_id),
           name = COALESCE(?, name),
           role = COALESCE(?, role),
           email_type = COALESCE(?, email_type),
@@ -233,11 +275,11 @@ const db = {
         WHERE id = ?
       `);
 
-      updateStmt.run(
-        contactData.company_id,
+      stmt.run(
+        contactData.company_id || null,
         contactData.name || null,
         contactData.role || null,
-        contactData.email_type || "General",
+        contactData.email_type || null,
         contactData.confidence || "LOW",
         contactData.confidence || "LOW",
         contactData.source_url || null,
@@ -247,9 +289,9 @@ const db = {
         existing.id
       );
 
-      return this.getContactByEmail(cleanEmail);
+      return database.prepare("SELECT * FROM contacts WHERE id = ?").get(existing.id);
     } else {
-      const insertStmt = database.prepare(`
+      const stmt = database.prepare(`
         INSERT INTO contacts (
           company_id, name, role, email, email_type, confidence, source_url, verified, mx_valid, notes
         ) VALUES (
@@ -257,11 +299,11 @@ const db = {
         )
       `);
 
-      insertStmt.run(
+      const res = stmt.run(
         contactData.company_id,
         contactData.name || null,
         contactData.role || null,
-        cleanEmail,
+        contactData.email,
         contactData.email_type || "General",
         contactData.confidence || "LOW",
         contactData.source_url || null,
@@ -270,17 +312,17 @@ const db = {
         contactData.notes || null
       );
 
-      return this.getContactByEmail(cleanEmail);
+      return database.prepare("SELECT * FROM contacts WHERE id = ?").get(Number(res.lastInsertRowid));
     }
   },
 
-  getContactByEmail(email) {
+  getContactsByCompanyId(companyId) {
     const database = getDatabase();
-    const stmt = database.prepare("SELECT * FROM contacts WHERE email = ?");
-    return stmt.get(email.toLowerCase().trim());
+    const stmt = database.prepare("SELECT * FROM contacts WHERE company_id = ? ORDER BY CASE confidence WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END");
+    return stmt.all(companyId);
   },
 
-  getContactsByCompanyId(companyId) {
+  getBestContactForCompany(companyId) {
     const database = getDatabase();
     const stmt = database.prepare(`
       SELECT * FROM contacts 
@@ -288,11 +330,12 @@ const db = {
       ORDER BY 
         CASE confidence WHEN 'HIGH' THEN 1 WHEN 'MEDIUM' THEN 2 ELSE 3 END,
         CASE email_type WHEN 'HR / Recruitment' THEN 1 WHEN 'Hiring Management' THEN 2 ELSE 3 END
+      LIMIT 1
     `);
-    return stmt.all(companyId);
+    return stmt.get(companyId);
   },
 
-  // Sources CRUD
+  // Sources
   addSource(sourceData) {
     const database = getDatabase();
     const stmt = database.prepare(`
@@ -315,42 +358,52 @@ const db = {
   },
 
   // Exclusions CRUD
-  addExclusion(exclusionData) {
+  addExclusion(companyName, normalizedName, domain = null, reason = "Manual exclusion") {
     const database = getDatabase();
-    const stmt = database.prepare(`
-      INSERT OR IGNORE INTO exclusions (company_name, normalized_name, domain, reason)
-      VALUES (?, ?, ?, ?)
-    `);
-    stmt.run(
-      exclusionData.company_name,
-      exclusionData.normalized_name,
-      exclusionData.domain || null,
-      exclusionData.reason || "Manual Exclusion"
-    );
-  },
-
-  isExcluded(normalizedName, domain = null) {
-    const database = getDatabase();
-    if (domain) {
-      const stmt = database.prepare("SELECT 1 FROM exclusions WHERE normalized_name = ? OR domain = ?");
-      return !!stmt.get(normalizedName, domain);
+    const existing = database.prepare("SELECT * FROM exclusions WHERE normalized_name = ?").get(normalizedName);
+    if (!existing) {
+      const stmt = database.prepare(`
+        INSERT INTO exclusions (company_name, normalized_name, domain, reason)
+        VALUES (?, ?, ?, ?)
+      `);
+      stmt.run(companyName, normalizedName, domain || null, reason);
     }
-    const stmt = database.prepare("SELECT 1 FROM exclusions WHERE normalized_name = ?");
-    return !!stmt.get(normalizedName);
   },
 
   getAllExclusions() {
     const database = getDatabase();
-    const stmt = database.prepare("SELECT * FROM exclusions");
+    const stmt = database.prepare("SELECT * FROM exclusions ORDER BY created_at DESC");
     return stmt.all();
   },
 
-  // Email Logs CRUD
+  isExcluded(normalizedName, domain = null) {
+    const database = getDatabase();
+    if (normalizedName) {
+      const stmt = database.prepare("SELECT 1 FROM exclusions WHERE normalized_name = ?");
+      if (stmt.get(normalizedName)) return true;
+    }
+    if (domain) {
+      const stmt = database.prepare("SELECT 1 FROM exclusions WHERE domain = ?");
+      if (stmt.get(domain)) return true;
+    }
+    return false;
+  },
+
+  deleteExclusion(id) {
+    const database = getDatabase();
+    const stmt = database.prepare("DELETE FROM exclusions WHERE id = ?");
+    stmt.run(id);
+  },
+
+  // Email Logs
   addEmailLog(logData) {
     const database = getDatabase();
     const stmt = database.prepare(`
-      INSERT INTO email_logs (company_id, contact_id, campaign_id, email, subject, status, message_id, error, attempts)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO email_logs (
+        company_id, contact_id, campaign_id, email, subject, status, message_id, error, attempts
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, ?, ?
+      )
     `);
     stmt.run(
       logData.company_id,
@@ -374,7 +427,7 @@ const db = {
     // 1. Check company table status
     if (companyId) {
       const comp = database.prepare("SELECT status FROM companies WHERE id = ?").get(companyId);
-      if (comp && comp.status === "SENT") {
+      if (comp && (comp.status === "SENT" || comp.status === "CONTACTED")) {
         return true;
       }
     }
@@ -409,7 +462,7 @@ const db = {
     return stmt.all();
   },
 
-  // Full Lead View with Best Contact
+  // Active Leads: strictly uncontacted, employee_count >= 30 verified, valid eligible email contacts
   getFinalQualifiedLeads(limit = null) {
     const database = getDatabase();
     let query = `
@@ -431,7 +484,13 @@ const db = {
           CASE email_type WHEN 'HR / Recruitment' THEN 1 WHEN 'Hiring Management' THEN 2 ELSE 3 END
         )
       ) ct ON ct.company_id = c.id
-      WHERE c.status NOT IN ('EXCLUDED', 'SKIPPED_DUPLICATE', 'FAILED')
+      WHERE c.status NOT IN ('CONTACTED', 'SENT', 'EXCLUDED', 'SKIPPED_DUPLICATE', 'FAILED', 'REJECTED_HEADCOUNT', 'UNCERTAIN_HEADCOUNT', 'NOT_ELIGIBLE')
+        AND ((c.employee_count IS NOT NULL AND c.employee_count >= 30) OR (c.employee_count_min IS NOT NULL AND c.employee_count_min >= 30))
+        AND (c.employee_count_verified = 1 OR c.employee_count_verified IS NULL)
+        AND (c.employee_count_status = 'QUALIFIED' OR c.employee_count_status IS NULL)
+        AND ct.email IS NOT NULL
+        AND c.id NOT IN (SELECT DISTINCT company_id FROM email_logs WHERE status IN ('SENT', 'DRY_RUN_SENT'))
+        AND ct.email NOT IN (SELECT DISTINCT email FROM email_logs WHERE status IN ('SENT', 'DRY_RUN_SENT'))
       ORDER BY c.lead_score DESC, c.app_relevance_score DESC, c.rating DESC
     `;
     if (limit) {
@@ -441,6 +500,33 @@ const db = {
     return stmt.all();
   },
 
+  // Contacted / Excluded History (Never deleted, permanently tracked)
+  getContactedLeads() {
+    const database = getDatabase();
+    const query = `
+      SELECT 
+        c.id as company_id,
+        c.name as company_name,
+        c.domain,
+        c.official_website,
+        c.employee_count,
+        c.employee_size_range,
+        c.employee_count_source,
+        c.status,
+        el.email as sent_email,
+        el.subject as email_subject,
+        el.status as email_status,
+        el.sent_at,
+        el.message_id
+      FROM companies c
+      LEFT JOIN email_logs el ON el.company_id = c.id
+      WHERE c.status IN ('CONTACTED', 'SENT') OR el.status IN ('SENT', 'DRY_RUN_SENT')
+      GROUP BY c.id
+      ORDER BY el.sent_at DESC, c.updated_at DESC
+    `;
+    return database.prepare(query).all();
+  },
+
   // Statistics Summary
   getStatistics() {
     const database = getDatabase();
@@ -448,13 +534,52 @@ const db = {
     const candidates = database.prepare("SELECT count(*) as count FROM companies WHERE status != 'EXCLUDED'").get().count;
     const excluded = database.prepare("SELECT count(*) as count FROM companies WHERE status = 'EXCLUDED'").get().count;
     const duplicates = database.prepare("SELECT count(*) as count FROM companies WHERE status = 'SKIPPED_DUPLICATE'").get().count;
-    const qualified = database.prepare("SELECT count(*) as count FROM companies WHERE app_relevance_score >= 70").get().count;
+    
+    // Employee breakdown metrics
+    const employeeVerified = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE ((employee_count >= 30) OR (employee_count_min >= 30))
+        AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
+    `).get().count;
+
+    const employeeTooLow = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE (employee_count IS NOT NULL AND employee_count < 30)
+         OR (employee_count_max IS NOT NULL AND employee_count_max < 30)
+         OR status = 'REJECTED_HEADCOUNT'
+         OR employee_count_status = 'REJECTED'
+    `).get().count;
+
+    const employeeUncertain = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE employee_count_status IN ('UNCERTAIN', 'NEED_MORE_VERIFICATION', 'UNKNOWN')
+         OR status = 'UNCERTAIN_HEADCOUNT'
+    `).get().count;
+
+    const employeeConflicting = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE employee_count_status = 'CONFLICTING'
+    `).get().count;
+
+    const qualified = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE app_relevance_score >= 70 
+        AND ((employee_count >= 30) OR (employee_count_min >= 30))
+        AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
+    `).get().count;
+
     const totalContacts = database.prepare("SELECT count(*) as count FROM contacts").get().count;
     const highConfidence = database.prepare("SELECT count(*) as count FROM contacts WHERE confidence = 'HIGH'").get().count;
     const mediumConfidence = database.prepare("SELECT count(*) as count FROM contacts WHERE confidence = 'MEDIUM'").get().count;
     const noContact = database.prepare("SELECT count(*) as count FROM companies WHERE id NOT IN (SELECT DISTINCT company_id FROM contacts)").get().count;
-    const readyToSend = database.prepare("SELECT count(*) as count FROM companies WHERE status IN ('READY', 'APPROVED', 'EMAIL_FOUND')").get().count;
+    const readyToSend = database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE status IN ('READY', 'APPROVED', 'EMAIL_FOUND', 'ACTIVE') 
+        AND ((employee_count >= 30) OR (employee_count_min >= 30))
+        AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
+    `).get().count;
     const sent = database.prepare("SELECT count(*) as count FROM email_logs WHERE status = 'SENT'").get().count;
+    const contacted = database.prepare("SELECT count(*) as count FROM companies WHERE status IN ('CONTACTED', 'SENT')").get().count;
     const failed = database.prepare("SELECT count(*) as count FROM email_logs WHERE status = 'FAILED'").get().count;
 
     return {
@@ -462,6 +587,10 @@ const db = {
       candidates,
       excluded,
       duplicates,
+      employeeVerified,
+      employeeTooLow,
+      employeeUncertain,
+      employeeConflicting,
       qualified,
       totalContacts,
       highConfidence,
@@ -469,6 +598,7 @@ const db = {
       noContact,
       readyToSend,
       sent,
+      contacted,
       failed
     };
   }

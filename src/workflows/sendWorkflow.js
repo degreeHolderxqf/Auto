@@ -43,12 +43,11 @@ async function showPreview(options = {}) {
 
     previewItems.push({
       "No.": idx + 1,
-      Company: l.name.slice(0, 24),
-      Website: (l.domain || l.official_website || "N/A").slice(0, 22),
-      Relevance: l.app_relevance_score,
-      LeadScore: l.lead_score,
+      Company: l.name.slice(0, 22),
+      Employees: l.employee_size_range || (l.employee_count ? `${l.employee_count}+` : "30+"),
+      Verified: l.employee_count_verified ? "✓ Verified" : "Unverified",
+      Source: (l.employee_count_source || "LinkedIn").slice(0, 15),
       ContactEmail: l.email || "[No Public Contact]",
-      Type: l.email_type || "N/A",
       Confidence: l.email_confidence || "NONE",
       Status: l.status
     });
@@ -57,7 +56,7 @@ async function showPreview(options = {}) {
   console.table(previewItems);
 
   const stats = db.getStatistics();
-  console.log(`\n📊 Total Ready in Queue: ${stats.readyToSend} | High Confidence: ${stats.highConfidence} | Medium Confidence: ${stats.mediumConfidence}`);
+  console.log(`\n📊 Total Ready in Queue: ${stats.readyToSend} | Verified (>= 30): ${stats.employeeVerified} | High Confidence: ${stats.highConfidence}`);
 
   return leads;
 }
@@ -67,10 +66,14 @@ async function runSend(options = {}) {
   const limit = options.limit !== undefined ? options.limit : (config.sendLimit || null);
   const autoConfirm = options.yes || false;
 
-  // Fetch leads that have an email and are eligible (HIGH / MEDIUM confidence)
+  // Fetch leads that have an email, are eligible (HIGH / MEDIUM confidence), uncontacted, and verified >= 30 employees
   const leads = db.getFinalQualifiedLeads(limit ? limit * 3 : null);
   const eligibleLeads = leads.filter(
-    (l) => l.email && ["HIGH", "MEDIUM"].includes(l.email_confidence) && !db.hasBeenContacted(l.email, l.id)
+    (l) => l.email &&
+      ["HIGH", "MEDIUM"].includes(l.email_confidence) &&
+      !db.hasBeenContacted(l.email, l.id) &&
+      (l.employee_count_verified === 1 || l.employee_count_status === "QUALIFIED") &&
+      ((l.employee_count !== null && l.employee_count >= 30) || (l.employee_count_min !== null && l.employee_count_min >= 30))
   );
 
   if (eligibleLeads.length === 0) {

@@ -39,12 +39,7 @@ class ExclusionService {
 
           if (normName) {
             this.excludedNames.add(normName);
-            db.addExclusion({
-              company_name: rawName || normName,
-              normalized_name: normName,
-              domain: normDomain,
-              reason
-            });
+            db.addExclusion(rawName || normName, normName, normDomain, reason);
           }
 
           if (normDomain) {
@@ -63,11 +58,25 @@ class ExclusionService {
   }
 
   syncToDb() {
+    // 1. Load manual exclusions
     const dbExclusions = db.getAllExclusions();
     dbExclusions.forEach((ex) => {
       if (ex.normalized_name) this.excludedNames.add(ex.normalized_name);
       if (ex.domain) this.excludedDomains.add(ex.domain);
     });
+
+    // 2. Load all contacted leads from database
+    try {
+      const contactedLeads = db.getContactedLeads();
+      contactedLeads.forEach((l) => {
+        const normName = normalizer.normalizeCompanyName(l.company_name);
+        const normDomain = normalizer.normalizeDomain(l.domain);
+        if (normName) this.excludedNames.add(normName);
+        if (normDomain) this.excludedDomains.add(normDomain);
+      });
+    } catch (e) {
+      // ignore if table syncing
+    }
   }
 
   /**
@@ -112,7 +121,7 @@ class ExclusionService {
         }
       }
 
-      // Check if domain contains excluded company stem (e.g. kloctechnologies.com contains kloc)
+      // Check if domain contains excluded company stem
       if (normDomain && normDomain.includes(exName) && exName.length >= 4) {
         return { excluded: true, reason: `Domain stem match with excluded: ${exName}` };
       }
@@ -136,12 +145,7 @@ class ExclusionService {
     if (normName) this.excludedNames.add(normName);
     if (normDomain) this.excludedDomains.add(normDomain);
 
-    db.addExclusion({
-      company_name: companyName,
-      normalized_name: normName,
-      domain: normDomain,
-      reason
-    });
+    db.addExclusion(companyName, normName, normDomain, reason);
 
     // Append to CSV if not already present
     try {

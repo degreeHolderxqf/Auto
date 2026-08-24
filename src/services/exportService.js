@@ -41,6 +41,10 @@ class ExportService {
       path: filePath,
       header: [
         { id: "name", title: "Company" },
+        { id: "employee_count", title: "Employee Count" },
+        { id: "employee_size_range", title: "Employee Size Range" },
+        { id: "employee_count_source", title: "Employee Source" },
+        { id: "employee_count_status", title: "Employee Status" },
         { id: "shopify_partner_url", title: "Shopify Partner URL" },
         { id: "official_website", title: "Official Website" },
         { id: "domain", title: "Domain" },
@@ -71,6 +75,10 @@ class ExportService {
 
     const records = leads.map((l) => ({
       name: l.name,
+      employee_count: l.employee_count != null ? l.employee_count : "",
+      employee_size_range: l.employee_size_range || "",
+      employee_count_source: l.employee_count_source || "",
+      employee_count_status: l.employee_count_status || "QUALIFIED",
       shopify_partner_url: l.shopify_partner_url || "",
       official_website: l.official_website || "",
       domain: l.domain || "",
@@ -105,6 +113,10 @@ class ExportService {
     const filePath = path.join(config.outputDir, "shopify_leads.xlsx");
     const records = leads.map((l) => ({
       Company: l.name,
+      "Employee Count": l.employee_count != null ? l.employee_count : "",
+      "Employee Range": l.employee_size_range || "",
+      "Employee Source": l.employee_count_source || "",
+      "Employee Status": l.employee_count_status || "QUALIFIED",
       "Shopify Partner URL": l.shopify_partner_url || "",
       "Official Website": l.official_website || "",
       Domain: l.domain || "",
@@ -150,6 +162,8 @@ class ExportService {
       path: filePath,
       header: [
         { id: "name", title: "Company" },
+        { id: "employee_count", title: "Employees" },
+        { id: "employee_source", title: "Employee Source" },
         { id: "lead_score", title: "Lead Score" },
         { id: "app_relevance_score", title: "App Relevance" },
         { id: "email", title: "Email Found" },
@@ -162,6 +176,8 @@ class ExportService {
 
     const records = leads.map((l) => ({
       name: l.name,
+      employee_count: l.employee_size_range || (l.employee_count ? `${l.employee_count}+` : "30+"),
+      employee_source: l.employee_count_source || "LinkedIn",
       lead_score: l.lead_score,
       app_relevance_score: l.app_relevance_score,
       email: l.email || "No Public Contact",
@@ -181,6 +197,8 @@ class ExportService {
       header: [
         { id: "id", title: "Company ID" },
         { id: "name", title: "Company Name" },
+        { id: "employees", title: "Employees" },
+        { id: "employee_source", title: "Employee Source" },
         { id: "email", title: "Target Email" },
         { id: "email_type", title: "Email Type" },
         { id: "confidence", title: "Confidence" },
@@ -193,6 +211,8 @@ class ExportService {
     const records = eligible.map((l) => ({
       id: l.id,
       name: l.name,
+      employees: l.employee_size_range || (l.employee_count ? `${l.employee_count}+` : "30+"),
+      employee_source: l.employee_count_source || "LinkedIn",
       email: l.email,
       email_type: l.email_type,
       confidence: l.email_confidence,
