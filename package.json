@@ -1,0 +1,29 @@
+{
+  "name": "shopify-lead-finder",
+  "version": "2.0.0",
+  "description": "Automated Shopify Partner to HR Lead Generation and Outreach System",
+  "license": "ISC",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node newest.js",
+    "discover": "node src/cli.js discover",
+    "research": "node src/cli.js research",
+    "leads": "node src/cli.js leads",
+    "export": "node src/cli.js export",
+    "preview": "node src/cli.js preview",
+    "send": "node src/cli.js send",
+    "status": "node src/cli.js status",
+    "exclude": "node src/cli.js exclude"
+  },
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.4.7",
+    "jsdom": "^28.1.0",
+    "nodemailer": "^6.9.2",
+    "pdfjs-dist": "^5.4.530",
+    "puppeteer": "^24.34.0",
+    "xlsx": "^0.18.5"
+  }
+}
