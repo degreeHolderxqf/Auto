@@ -253,7 +253,7 @@ function startServer(port = process.env.PORT || 3000) {
 
         // Execute Batch
         const result = await emailSender.sendBatch(batchToSend, { isDryRun: dryRun });
-        exportService.generateAllExports();
+        await exportService.exportAll().catch((e) => logger.warn("Export error:", e.message));
 
         sendJson(res, 200, {
           success: true,
@@ -280,7 +280,7 @@ function startServer(port = process.env.PORT || 3000) {
         const body = await parseBody(req);
         const candidates = body.candidates ? parseInt(body.candidates, 10) : 150;
         const result = await runDiscovery({ candidates });
-        exportService.generateAllExports();
+        await exportService.exportAll().catch((e) => logger.warn("Export error:", e.message));
         sendJson(res, 200, { success: true, message: "Discovery finished", result });
         return;
       }
@@ -294,12 +294,12 @@ function startServer(port = process.env.PORT || 3000) {
             return;
           }
           const result = await researchCompany(company);
-          exportService.generateAllExports();
+          await exportService.exportAll().catch((e) => logger.warn("Export error:", e.message));
           sendJson(res, 200, { success: true, message: "Company research finished", result });
           return;
         } else {
           const result = await runResearch(body);
-          exportService.generateAllExports();
+          await exportService.exportAll().catch((e) => logger.warn("Export error:", e.message));
           sendJson(res, 200, { success: true, message: "Batch research finished", result });
           return;
         }
@@ -309,7 +309,7 @@ function startServer(port = process.env.PORT || 3000) {
         const body = await parseBody(req);
         const target = body.target ? parseInt(body.target, 10) : 100;
         const result = await runLeadGeneration({ target });
-        exportService.generateAllExports();
+        await exportService.exportAll().catch((e) => logger.warn("Export error:", e.message));
         sendJson(res, 200, { success: true, message: "Lead generation workflow finished", result });
         return;
       }

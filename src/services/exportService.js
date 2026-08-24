@@ -31,6 +31,10 @@ class ExportService {
     logger.success("All export files successfully written to " + config.outputDir);
   }
 
+  async generateAllExports() {
+    return this.exportAll();
+  }
+
   async exportLeadsCsv(leads) {
     const filePath = path.join(config.outputDir, "shopify_leads.csv");
     const csvWriter = createObjectCsvWriter({
