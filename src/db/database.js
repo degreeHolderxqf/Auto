@@ -623,6 +623,67 @@ const db = {
       contacted,
       failed
     };
+  },
+
+  // Dynamic Settings CRUD
+  getSetting(key, defaultValue = null) {
+    const database = getDatabase();
+    const row = database.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+    return row ? row.value : defaultValue;
+  },
+
+  setSetting(key, value) {
+    const database = getDatabase();
+    const strVal = typeof value === "object" ? JSON.stringify(value) : String(value !== null && value !== undefined ? value : "");
+    const stmt = database.prepare(`
+      INSERT INTO settings (key, value, updated_at) 
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET 
+        value = excluded.value, 
+        updated_at = datetime('now')
+    `);
+    stmt.run(key, strVal);
+    return strVal;
+  },
+
+  getAllSettings() {
+    const database = getDatabase();
+    const rows = database.prepare("SELECT key, value FROM settings").all();
+    const result = {};
+    for (const r of rows) {
+      try {
+        result[r.key] = JSON.parse(r.value);
+      } catch {
+        result[r.key] = r.value;
+      }
+    }
+    return result;
+  },
+
+  saveAllSettings(settingsObj = {}) {
+    const database = getDatabase();
+    const stmt = database.prepare(`
+      INSERT INTO settings (key, value, updated_at) 
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(key) DO UPDATE SET 
+        value = excluded.value, 
+        updated_at = datetime('now')
+    `);
+
+    database.exec("BEGIN TRANSACTION;");
+    try {
+      for (const [k, v] of Object.entries(settingsObj)) {
+        if (v !== undefined) {
+          const strVal = typeof v === "object" ? JSON.stringify(v) : String(v !== null ? v : "");
+          stmt.run(k, strVal);
+        }
+      }
+      database.exec("COMMIT;");
+    } catch (e) {
+      database.exec("ROLLBACK;");
+      throw e;
+    }
+    return this.getAllSettings();
   }
 };
 

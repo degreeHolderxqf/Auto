@@ -169,6 +169,15 @@ function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_email_logs_company ON email_logs(company_id);
     CREATE INDEX IF NOT EXISTS idx_email_logs_status ON email_logs(status);
   `);
+
+  // 7. Settings Table (Key-Value Dynamic Configuration)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
 }
 
 module.exports = { runMigrations };

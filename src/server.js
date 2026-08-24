@@ -181,7 +181,36 @@ function startServer(port = process.env.PORT || 3000) {
         return;
       }
 
-      // 7. Email Preview API
+      // 7. Dynamic Settings API (Get & Save Configuration)
+      if (pathname === "/api/settings" && req.method === "GET") {
+        const settingsService = require("./services/settingsService");
+        const settings = settingsService.getSettings(true);
+        sendJson(res, 200, { success: true, settings });
+        return;
+      }
+
+      if (pathname === "/api/settings" && req.method === "POST") {
+        const settingsService = require("./services/settingsService");
+        const body = await parseBody(req);
+        const updated = settingsService.updateSettings(body);
+        sendJson(res, 200, { success: true, message: "Settings successfully updated", settings: updated });
+        return;
+      }
+
+      // 8. Test SMTP Connection API
+      if (pathname === "/api/settings/test-smtp" && req.method === "POST") {
+        const settingsService = require("./services/settingsService");
+        const body = await parseBody(req);
+        const result = await settingsService.testSmtpConnection(body);
+        if (result.success) {
+          sendJson(res, 200, { success: true, message: result.message });
+        } else {
+          sendError(res, 400, result.error);
+        }
+        return;
+      }
+
+      // 9. Email Preview API
       if (pathname.startsWith("/api/email/preview/") && req.method === "GET") {
         const companyId = parseInt(pathname.replace("/api/email/preview/", ""), 10);
         if (isNaN(companyId)) {

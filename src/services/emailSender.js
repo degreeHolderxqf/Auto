@@ -14,14 +14,19 @@ class EmailSender {
   }
 
   getTransporter() {
-    if (!this.transporter) {
+    const settings = require("./settingsService").getSettings(false);
+    const currentKey = `${settings.smtpHost}:${settings.smtpPort}:${settings.smtpSecure}:${settings.smtpUser}:${settings.smtpPass}`;
+
+    if (!this.transporter || this.lastTransportKey !== currentKey) {
+      this.lastTransportKey = currentKey;
+      this.isVerified = false;
       this.transporter = nodemailer.createTransport({
-        host: config.smtp.host,
-        port: config.smtp.port,
-        secure: config.smtp.secure,
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        secure: settings.smtpSecure,
         auth: {
-          user: config.smtp.user,
-          pass: config.smtp.pass
+          user: settings.smtpUser,
+          pass: settings.smtpPass
         },
         connectionTimeout: 10000,
         greetingTimeout: 10000,
