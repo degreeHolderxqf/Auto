@@ -25,11 +25,22 @@ const config = {
   exclusionsPath: path.resolve(rootDir, process.env.EXCLUSIONS_PATH || "data/excluded_companies.csv"),
   resumePath: path.resolve(rootDir, process.env.RESUME_PATH || "../../26_Himanshu-Soni-Shopify.pdf"),
 
-  // Shopify Discovery
+  // Lead Discovery & Targeting
   shopifyDirectoryUrl: process.env.SHOPIFY_PARTNER_DIRECTORY_URL || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=AVERAGE_RATING",
   targetCountry: process.env.TARGET_COUNTRY || "India",
   targetLeads: parseInt(process.env.TARGET_LEADS || "100", 10),
   minAppRelevanceScore: parseInt(process.env.MIN_APP_RELEVANCE_SCORE || "70", 10),
+
+  // Employee Size Verification Settings (Optional via .env)
+  // Set MIN_EMPLOYEE_COUNT=30 for 30+ employees, or set 0 / false / disabled to make it optional
+  minEmployeeCount: (() => {
+    const raw = process.env.MIN_EMPLOYEE_COUNT !== undefined ? process.env.MIN_EMPLOYEE_COUNT : process.env.MIN_EMPLOYEES;
+    if (raw === undefined || raw === null || raw === "") return 30; // default 30
+    const str = String(raw).trim().toLowerCase();
+    if (str === "false" || str === "null" || str === "0" || str === "none" || str === "disabled" || str === "off") return null;
+    const parsed = parseInt(str, 10);
+    return isNaN(parsed) || parsed <= 0 ? null : parsed;
+  })(),
 
   // Search Provider
   searchProvider: process.env.SEARCH_PROVIDER || "direct", // direct, duckduckgo, serpapi, google, bing

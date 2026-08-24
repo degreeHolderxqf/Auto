@@ -1,11 +1,15 @@
+const config = require("../config");
+
 /**
  * Strict Evidence-Based Employee Count Verification Service
+ * 
  * Rules:
- * 1. Only companies verified with employee_count >= 30 (30 is valid) are qualified.
+ * 1. Configurable employee threshold via .env (MIN_EMPLOYEE_COUNT, default: 30).
+ *    If MIN_EMPLOYEE_COUNT=0 or disabled/false/null, employee count is optional and won't block qualification.
  * 2. Source Priority: LinkedIn (Primary) -> Official Website / About / Careers / Directory (Secondary).
- * 3. Range handling:
- *    - 51-200, 201-500, 501-1000, 1001-5000, 10000+ -> ACCEPT (min >= 30)
- *    - 1-10 -> REJECT (max < 30)
+ * 3. Range handling when threshold is enabled (e.g., 30):
+ *    - 51-200, 201-500, 501-1000, 1001-5000, 10000+ -> ACCEPT (min >= threshold)
+ *    - 1-10 -> REJECT (max < threshold)
  *    - 11-50, 20-40 -> NEED_MORE_VERIFICATION (requires credible secondary source)
  * 4. Multi-source resolution:
  *    - If LinkedIn is 11-50 and secondary source confirms 42 or 35 -> ACCEPT
@@ -16,10 +20,22 @@
 
 class EmployeeVerifier {
   /**
+   * Helper to get active threshold
+   */
+  getThreshold(overrideThreshold = undefined) {
+    if (overrideThreshold !== undefined) {
+      if (overrideThreshold === null || overrideThreshold === false || overrideThreshold <= 0) return null;
+      return typeof overrideThreshold === "number" ? overrideThreshold : parseInt(overrideThreshold, 10);
+    }
+    return config.minEmployeeCount;
+  }
+
+  /**
    * Extracts employee headcount evidence from text / HTML content.
    * @param {string} text - HTML or plain text from website, about page, or directory profile
    * @param {string} sourceName - Source name (e.g. "LinkedIn", "Official Website Homepage", "Shopify Partner Profile")
    * @param {string} sourceUrl - URL where evidence was found
+   * @param {number|null} customThreshold - Optional custom threshold override
    * @returns {{
    *   exactCount: number | null,
    *   minCount: number | null,
@@ -32,7 +48,9 @@ class EmployeeVerifier {
    *   reason: string
    * }}
    */
-  parseHeadcountEvidence(text, sourceName = "Website", sourceUrl = null) {
+  parseHeadcountEvidence(text, sourceName = "Website", sourceUrl = null, customThreshold = undefined) {
+    const threshold = this.getThreshold(customThreshold);
+
     if (!text || typeof text !== "string") {
       return {
         exactCount: null,
@@ -42,8 +60,8 @@ class EmployeeVerifier {
         source: sourceName,
         sourceUrl,
         evidenceText: null,
-        status: "UNKNOWN",
-        reason: "No text provided for headcount verification"
+        status: threshold ? "UNKNOWN" : "QUALIFIED",
+        reason: threshold ? "No text provided for headcount verification" : "Employee threshold is optional/disabled"
       };
     }
 
@@ -69,8 +87,8 @@ class EmployeeVerifier {
           if (!isNaN(lower) && !isNaN(upper) && lower <= upper && lower > 0 && upper < 1000000) {
             const rangeStr = `${lower}-${upper}`;
 
-            if (lower >= 30) {
-              // Lower bound is >= 30 (e.g. 51-200, 201-500, 30-50), unconditionally QUALIFIED
+            // If threshold is disabled (null or <= 0), any valid range is qualified
+            if (!threshold || threshold <= 0) {
               return {
                 exactCount: null,
                 minCount: lower,
@@ -80,12 +98,27 @@ class EmployeeVerifier {
                 sourceUrl,
                 evidenceText: match[0].trim(),
                 status: "QUALIFIED",
-                reason: `Verified range: ${rangeStr} employees (lower bound ${lower} >= 30)`
+                reason: `Recorded range: ${rangeStr} employees (threshold check disabled/optional)`
               };
             }
 
-            if (upper < 30) {
-              // Upper bound is strictly < 30 (e.g. 1-10, 1-29), unconditionally REJECTED
+            if (lower >= threshold) {
+              // Lower bound is >= threshold (e.g. 51-200 >= 30), unconditionally QUALIFIED
+              return {
+                exactCount: null,
+                minCount: lower,
+                maxCount: upper,
+                range: rangeStr,
+                source: sourceName,
+                sourceUrl,
+                evidenceText: match[0].trim(),
+                status: "QUALIFIED",
+                reason: `Verified range: ${rangeStr} employees (lower bound ${lower} >= ${threshold})`
+              };
+            }
+
+            if (upper < threshold) {
+              // Upper bound is strictly < threshold (e.g. 1-10 < 30), unconditionally REJECTED
               return {
                 exactCount: null,
                 minCount: lower,
@@ -95,11 +128,11 @@ class EmployeeVerifier {
                 sourceUrl,
                 evidenceText: match[0].trim(),
                 status: "REJECTED",
-                reason: `Range ${rangeStr} employees is < 30 (Rejected)`
+                reason: `Range ${rangeStr} employees is < ${threshold} (Rejected)`
               };
             }
 
-            // Ambiguous range spanning across 30 (e.g. 11-50, 20-40): Needs more verification!
+            // Ambiguous range spanning across threshold (e.g. 11-50, 20-40 with threshold 30): Needs more verification!
             return {
               exactCount: null,
               minCount: lower,
@@ -109,14 +142,14 @@ class EmployeeVerifier {
               sourceUrl,
               evidenceText: match[0].trim(),
               status: "NEED_MORE_VERIFICATION",
-              reason: `Range ${rangeStr} spans below and above 30 threshold (Needs secondary verification)`
+              reason: `Range ${rangeStr} spans below and above ${threshold} threshold (Needs secondary verification)`
             };
           }
         } else if (match[1]) {
           // Single bound e.g. "50+ employees", "10,000+ employees", "30+ employees"
           const bound = parseInt(match[1].replace(/,/g, ""), 10);
           if (!isNaN(bound) && bound > 0) {
-            const isQualified = bound >= 30;
+            const isQualified = !threshold || bound >= threshold;
             return {
               exactCount: null,
               minCount: bound,
@@ -127,8 +160,8 @@ class EmployeeVerifier {
               evidenceText: match[0].trim(),
               status: isQualified ? "QUALIFIED" : "NEED_MORE_VERIFICATION",
               reason: isQualified
-                ? `Verified headcount: ${bound}+ (>= 30 threshold met)`
-                : `Single bound ${bound}+ is below threshold 30 (Needs secondary verification)`
+                ? `Verified headcount: ${bound}+ (${threshold ? `>= ${threshold} threshold met` : "threshold optional"})`
+                : `Single bound ${bound}+ is below threshold ${threshold} (Needs secondary verification)`
             };
           }
         }
@@ -136,7 +169,6 @@ class EmployeeVerifier {
     }
 
     // 2. Check Exact Number + Employees / Team / People patterns
-    // e.g. "our team has 42 employees", "team of 30 specialists", "headcount: 35", "workforce of 45 engineers", "29 employees"
     const exactPatterns = [
       /(?:team|company|workforce|staff|headcount)\s*(?:of|has|is|consists of|with)\s*(?:over|more than|approx|around|approximately)?\s*(\d{1,5})\+?\s*(?:full-time\s*)?(?:employees|team members|developers|engineers|designers|specialists|professionals|consultants|staff|people)/i,
       /(?:our\s*(?:in-house\s*|boutique\s*)?team\s*(?:has|consists of)|we\s*have\s*(?:a\s*)?(?:strong\s*)?(?:workforce|team|staff)\s*of)\s*(\d{1,5})\+?\s*(?:full-time\s*)?(?:employees|team members|developers|engineers|designers|specialists|professionals|consultants|staff|people)?/i,
@@ -151,7 +183,7 @@ class EmployeeVerifier {
         const count = parseInt(match[1].replace(/,/g, ""), 10);
         if (!isNaN(count) && count > 0) {
           const isPlus = match[0].includes("+") || /over|more than/i.test(match[0]);
-          const isQualified = count >= 30; // STRICT: 30 is valid!
+          const isQualified = !threshold || count >= threshold;
           return {
             exactCount: isPlus ? null : count,
             minCount: count,
@@ -162,8 +194,8 @@ class EmployeeVerifier {
             evidenceText: match[0].trim(),
             status: isQualified ? "QUALIFIED" : "REJECTED",
             reason: isQualified
-              ? `Verified exact headcount: ${count}${isPlus ? "+" : ""} (>= 30 threshold met)`
-              : `Exact headcount ${count} is < 30 (Rejected)`
+              ? `Verified exact headcount: ${count}${isPlus ? "+" : ""} (${threshold ? `>= ${threshold} threshold met` : "threshold optional"})`
+              : `Exact headcount ${count} is < ${threshold} (Rejected)`
           };
         }
       }
@@ -178,8 +210,10 @@ class EmployeeVerifier {
       source: sourceName,
       sourceUrl,
       evidenceText: null,
-      status: "UNKNOWN",
-      reason: "No credible headcount evidence found in provided source"
+      status: threshold ? "UNKNOWN" : "QUALIFIED",
+      reason: threshold
+        ? "No credible headcount evidence found in provided source"
+        : "Employee count not found, but threshold verification is disabled/optional"
     };
   }
 
@@ -189,6 +223,7 @@ class EmployeeVerifier {
    *
    * @param {object|null} primary - Evidence from primary source (LinkedIn)
    * @param {object|null} secondary - Evidence from secondary source (Website / About / Careers / Directory)
+   * @param {number|null} customThreshold - Optional custom threshold override
    * @returns {{
    *   isQualified: boolean,
    *   employee_count: number | null,
@@ -203,8 +238,42 @@ class EmployeeVerifier {
    *   reason: string
    * }}
    */
-  evaluateMultiSource(primary = null, secondary = null) {
+  evaluateMultiSource(primary = null, secondary = null, customThreshold = undefined) {
+    const threshold = this.getThreshold(customThreshold);
     const timestamp = new Date().toISOString();
+
+    // If threshold is disabled / optional (null or <= 0), company is always qualified
+    if (!threshold || threshold <= 0) {
+      const anyEvidence = (primary && primary.status !== "UNKNOWN") ? primary : (secondary && secondary.status !== "UNKNOWN" ? secondary : null);
+      if (anyEvidence) {
+        return {
+          isQualified: true,
+          employee_count: anyEvidence.exactCount || anyEvidence.minCount,
+          employee_count_min: anyEvidence.minCount,
+          employee_count_max: anyEvidence.maxCount,
+          employee_size_range: anyEvidence.range,
+          employee_count_source: anyEvidence.source,
+          employee_count_source_url: anyEvidence.sourceUrl,
+          employee_count_verified: 1,
+          employee_count_verified_at: timestamp,
+          employee_count_status: "QUALIFIED",
+          reason: `Headcount recorded as ${anyEvidence.range || anyEvidence.exactCount || anyEvidence.minCount} (Threshold check optional)`
+        };
+      }
+      return {
+        isQualified: true,
+        employee_count: null,
+        employee_count_min: null,
+        employee_count_max: null,
+        employee_size_range: null,
+        employee_count_source: null,
+        employee_count_source_url: null,
+        employee_count_verified: 0,
+        employee_count_verified_at: timestamp,
+        employee_count_status: "QUALIFIED",
+        reason: "Employee size check is disabled/optional via configuration"
+      };
+    }
 
     const unverifiedResult = (status = "UNKNOWN", reason = "Employee count not verified") => ({
       isQualified: false,
@@ -226,9 +295,9 @@ class EmployeeVerifier {
     // Case 1: Primary (LinkedIn) provides conclusive proof
     if (prim) {
       if (prim.status === "QUALIFIED") {
-        // Check if secondary directly contradicts with < 30
-        if (sec && sec.status === "REJECTED" && ((sec.exactCount !== null && sec.exactCount < 30) || (sec.maxCount !== null && sec.maxCount < 30))) {
-          // Direct contradiction: LinkedIn claimed >= 30, but secondary claimed < 30
+        // Check if secondary directly contradicts with < threshold
+        if (sec && sec.status === "REJECTED" && ((sec.exactCount !== null && sec.exactCount < threshold) || (sec.maxCount !== null && sec.maxCount < threshold))) {
+          // Direct contradiction: LinkedIn claimed >= threshold, but secondary claimed < threshold
           return {
             isQualified: false,
             employee_count: sec.exactCount || sec.maxCount,
@@ -261,7 +330,7 @@ class EmployeeVerifier {
       }
 
       if (prim.status === "REJECTED") {
-        // Primary is explicitly < 30 (e.g. 1-10 employees, or exact 25)
+        // Primary is explicitly < threshold
         const exactOrVal = prim.exactCount !== null ? prim.exactCount : prim.maxCount;
         return {
           isQualified: false,
@@ -282,7 +351,7 @@ class EmployeeVerifier {
       if (prim.status === "NEED_MORE_VERIFICATION") {
         if (sec) {
           if (sec.status === "QUALIFIED") {
-            // Secondary establishes >= 30 (e.g. 42 or 35 employees on website)
+            // Secondary establishes >= threshold (e.g. 42 or 35 employees on website)
             const exactOrMin = sec.exactCount !== null ? sec.exactCount : sec.minCount;
             return {
               isQualified: true,
@@ -295,12 +364,12 @@ class EmployeeVerifier {
               employee_count_verified: 1,
               employee_count_verified_at: timestamp,
               employee_count_status: "QUALIFIED",
-              reason: `${prim.source} indicates ${prim.range}; verified >= 30 via ${sec.source} (${exactOrMin} employees)`
+              reason: `${prim.source} indicates ${prim.range}; verified >= ${threshold} via ${sec.source} (${exactOrMin} employees)`
             };
           }
 
           if (sec.status === "REJECTED") {
-            // Secondary establishes < 30 (e.g. 25 or 18 employees on website)
+            // Secondary establishes < threshold (e.g. 25 or 18 employees on website)
             const exactOrVal = sec.exactCount !== null ? sec.exactCount : sec.maxCount;
             return {
               isQualified: false,
@@ -313,7 +382,7 @@ class EmployeeVerifier {
               employee_count_verified: 0,
               employee_count_verified_at: timestamp,
               employee_count_status: "REJECTED",
-              reason: `${prim.source} was ${prim.range}; resolved as < 30 via ${sec.source} (${exactOrVal} employees)`
+              reason: `${prim.source} was ${prim.range}; resolved as < ${threshold} via ${sec.source} (${exactOrVal} employees)`
             };
           }
         }
@@ -396,11 +465,12 @@ class EmployeeVerifier {
    * Helper for single text verification (backward compatible)
    * @param {string} text
    * @param {string} sourceName
+   * @param {number|null} customThreshold
    * @returns {{ verifiedCount: number | null, source: string | null, isQualified: boolean, reason: string }}
    */
-  verifyEmployeeCount(text, sourceName = "Website") {
-    const evidence = this.parseHeadcountEvidence(text, sourceName);
-    const evalResult = this.evaluateMultiSource(null, evidence);
+  verifyEmployeeCount(text, sourceName = "Website", customThreshold = undefined) {
+    const evidence = this.parseHeadcountEvidence(text, sourceName, null, customThreshold);
+    const evalResult = this.evaluateMultiSource(null, evidence, customThreshold);
 
     return {
       verifiedCount: evalResult.employee_count,
@@ -413,15 +483,18 @@ class EmployeeVerifier {
   }
 
   /**
-   * Strict count check helper
+   * Threshold check helper
    * @param {number|null|undefined} count
+   * @param {number|null} customThreshold
    * @returns {boolean}
    */
-  isCountQualified(count) {
+  isCountQualified(count, customThreshold = undefined) {
+    const threshold = this.getThreshold(customThreshold);
+    if (!threshold || threshold <= 0) return true; // threshold disabled
     if (count === null || count === undefined || typeof count !== "number" || isNaN(count)) {
       return false;
     }
-    return count >= 30; // 30 is valid!
+    return count >= threshold;
   }
 }
 

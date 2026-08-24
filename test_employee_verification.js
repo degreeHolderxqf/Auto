@@ -1,7 +1,7 @@
 /**
- * Automated Test Suite for Strict Employee-Size Verification (>= 30) & Email Eligibility
+ * Automated Test Suite for Strict & Configurable Employee-Size Verification & Email Eligibility
  * 
- * Verifies all 12 Required Test Cases + Edge Cases:
+ * Verifies all 12 Required Test Cases + Configurable / Optional Threshold Tests:
  * 1. LinkedIn: 51–200 -> ACCEPT
  * 2. LinkedIn: 201–500 -> ACCEPT
  * 3. LinkedIn: 11–50 (No other evidence) -> NOT ELIGIBLE
@@ -18,6 +18,9 @@
  * 14. Range 20–40 (no secondary proof) -> NOT ELIGIBLE (NEED MORE VERIFICATION)
  * 15. Single bound 10,000+ employees -> ACCEPT
  * 16. Conflicting evidence: LinkedIn 51–200 vs Website 18 -> CONFLICTING (Not eligible)
+ * 17. Optional / Disabled Threshold (MIN_EMPLOYEE_COUNT=0 or null) -> All sizes accepted
+ * 18. Optional / Disabled Threshold with Unknown employee count -> Still eligible
+ * 19. Custom Threshold (e.g. 50 employees): 40 -> REJECT, 50 -> ACCEPT
  */
 
 const assert = require("assert");
@@ -27,7 +30,7 @@ const exclusionService = require("./src/services/exclusionService");
 
 async function runTests() {
   console.log("\n=======================================================");
-  console.log("🧪 RUNNING STRICT EMPLOYEE VERIFICATION TEST SUITE (16 CASES)");
+  console.log("🧪 RUNNING EMPLOYEE VERIFICATION TEST SUITE (19 CASES)");
   console.log("=======================================================\n");
 
   let passed = 0;
@@ -48,8 +51,8 @@ async function runTests() {
   // 1. LinkedIn: 51–200 -> ACCEPT
   test("Test Case 1: LinkedIn 51–200 -> ACCEPT (min >= 30)", () => {
     const text = "Company size: 51-200 employees on LinkedIn";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn");
-    const res = employeeVerifier.evaluateMultiSource(evidence, null);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, 30);
 
     assert.strictEqual(res.isQualified, true, "Should be qualified");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -62,8 +65,8 @@ async function runTests() {
   // 2. LinkedIn: 201–500 -> ACCEPT
   test("Test Case 2: LinkedIn 201–500 -> ACCEPT (min >= 30)", () => {
     const text = "Headcount: 201-500 employees";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn");
-    const res = employeeVerifier.evaluateMultiSource(evidence, null);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, 30);
 
     assert.strictEqual(res.isQualified, true, "Should be qualified");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -74,8 +77,8 @@ async function runTests() {
   // 3. LinkedIn: 11–50, No other evidence -> NOT ELIGIBLE
   test("Test Case 3: LinkedIn 11–50 (no other evidence) -> NOT ELIGIBLE (NEEDS VERIFICATION)", () => {
     const text = "Company size: 11-50 employees";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn");
-    const res = employeeVerifier.evaluateMultiSource(evidence, null);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, 30);
 
     assert.strictEqual(res.isQualified, false, "Must NOT be qualified automatically");
     assert.strictEqual(res.employee_count_status, "NEED_MORE_VERIFICATION");
@@ -88,9 +91,9 @@ async function runTests() {
     const linkedInText = "Company size: 11-50 employees";
     const websiteText = "Our in-house team has 42 employees globally building top stores";
 
-    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn");
-    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website Homepage");
-    const res = employeeVerifier.evaluateMultiSource(prim, sec);
+    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn", null, 30);
+    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website Homepage", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(prim, sec, 30);
 
     assert.strictEqual(res.isQualified, true, "Should be qualified via secondary verification");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -102,8 +105,8 @@ async function runTests() {
   // 5. Exact employee count: 30 -> ACCEPT
   test("Test Case 5: Exact employee count: 30 -> ACCEPT (>= 30 IS VALID)", () => {
     const text = "We have a strong workforce of 30 developers across our office";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website");
-    const res = employeeVerifier.evaluateMultiSource(null, evidence);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, 30);
 
     assert.strictEqual(res.isQualified, true, "30 is >= 30 and must be accepted");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -114,8 +117,8 @@ async function runTests() {
   // 6. Exact employee count: 29 -> REJECT
   test("Test Case 6: Exact employee count: 29 -> REJECT (< 30)", () => {
     const text = "Our full-time team of 29 employees builds custom apps";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website");
-    const res = employeeVerifier.evaluateMultiSource(null, evidence);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, 30);
 
     assert.strictEqual(res.isQualified, false, "29 is < 30 and must be rejected");
     assert.strictEqual(res.employee_count_status, "REJECTED");
@@ -126,8 +129,8 @@ async function runTests() {
   // 7. Exact employee count: 100 -> ACCEPT
   test("Test Case 7: Exact employee count: 100 -> ACCEPT", () => {
     const text = "Over 100 team members worldwide";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website");
-    const res = employeeVerifier.evaluateMultiSource(null, evidence);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, 30);
 
     assert.strictEqual(res.isQualified, true, "100 is >= 30");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -135,13 +138,13 @@ async function runTests() {
     assert.strictEqual(res.employee_count_verified, 1);
   });
 
-  // 8. Employee count unknown -> NOT ELIGIBLE
-  test("Test Case 8: Employee count unknown -> NOT ELIGIBLE (UNKNOWN)", () => {
+  // 8. Employee count unknown -> NOT ELIGIBLE (when threshold is 30)
+  test("Test Case 8: Employee count unknown -> NOT ELIGIBLE (when threshold enabled)", () => {
     const text = "We are an innovative Shopify agency with many great clients";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website");
-    const res = employeeVerifier.evaluateMultiSource(null, evidence);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, 30);
 
-    assert.strictEqual(res.isQualified, false, "Unknown count must not qualify");
+    assert.strictEqual(res.isQualified, false, "Unknown count must not qualify when threshold is 30");
     assert.strictEqual(res.employee_count_status, "UNKNOWN");
     assert.strictEqual(res.employee_count_verified, 0);
   });
@@ -151,9 +154,9 @@ async function runTests() {
     const linkedInText = "Company size: 11-50 employees";
     const websiteText = "Headcount of 25 specialists";
 
-    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn");
-    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website");
-    const res = employeeVerifier.evaluateMultiSource(prim, sec);
+    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn", null, 30);
+    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(prim, sec, 30);
 
     assert.strictEqual(res.isQualified, false, "Secondary resolved count to 25 (< 30), must reject");
     assert.strictEqual(res.employee_count_status, "REJECTED");
@@ -166,9 +169,9 @@ async function runTests() {
     const linkedInText = "Company size: 11-50 employees";
     const websiteText = "A passionate staff of 35 engineers";
 
-    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn");
-    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website");
-    const res = employeeVerifier.evaluateMultiSource(prim, sec);
+    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn", null, 30);
+    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(prim, sec, 30);
 
     assert.strictEqual(res.isQualified, true, "Secondary source 35 is >= 30, must accept");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -225,12 +228,12 @@ async function runTests() {
   });
 
   // 13. Range 1–10 employees -> REJECT
-  test("Test Case 13: Range 1–10 employees -> REJECT", () => {
+  test("Test Case 13: Range 1–10 employees -> REJECT (when threshold is 30)", () => {
     const text = "Company size: 1-10 employees";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn");
-    const res = employeeVerifier.evaluateMultiSource(evidence, null);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, 30);
 
-    assert.strictEqual(res.isQualified, false, "1-10 employees must be rejected");
+    assert.strictEqual(res.isQualified, false, "1-10 employees must be rejected when threshold is 30");
     assert.strictEqual(res.employee_count_status, "REJECTED");
     assert.strictEqual(res.employee_size_range, "1-10");
   });
@@ -238,8 +241,8 @@ async function runTests() {
   // 14. Range 20–40 (no secondary proof) -> NOT ELIGIBLE
   test("Test Case 14: Range 20–40 (no secondary proof) -> NOT ELIGIBLE", () => {
     const text = "Headcount 20-40 employees";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website");
-    const res = employeeVerifier.evaluateMultiSource(null, evidence);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, 30);
 
     assert.strictEqual(res.isQualified, false, "20-40 range is ambiguous and must not qualify alone");
     assert.strictEqual(res.employee_count_status, "NEED_MORE_VERIFICATION");
@@ -248,8 +251,8 @@ async function runTests() {
   // 15. Single bound 10,000+ employees -> ACCEPT
   test("Test Case 15: Single bound 10,000+ employees -> ACCEPT", () => {
     const text = "10,000+ employees worldwide";
-    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn");
-    const res = employeeVerifier.evaluateMultiSource(evidence, null);
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, 30);
 
     assert.strictEqual(res.isQualified, true, "10000+ is >= 30 and must qualify");
     assert.strictEqual(res.employee_count_status, "QUALIFIED");
@@ -261,12 +264,44 @@ async function runTests() {
     const linkedInText = "Company size: 51-200 employees";
     const websiteText = "Our boutique team consists of 18 full-time designers";
 
-    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn");
-    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website");
-    const res = employeeVerifier.evaluateMultiSource(prim, sec);
+    const prim = employeeVerifier.parseHeadcountEvidence(linkedInText, "LinkedIn", null, 30);
+    const sec = employeeVerifier.parseHeadcountEvidence(websiteText, "Official Website", null, 30);
+    const res = employeeVerifier.evaluateMultiSource(prim, sec, 30);
 
     assert.strictEqual(res.isQualified, false, "Conflicting evidence must not qualify");
     assert.strictEqual(res.employee_count_status, "CONFLICTING");
+  });
+
+  // 17. Optional / Disabled Threshold (null or 0) -> Any size accepted
+  test("Test Case 17: Optional Threshold (null / 0) -> Small size (1-10) is QUALIFIED & optional", () => {
+    const text = "Company size: 1-10 employees";
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "LinkedIn", null, null);
+    const res = employeeVerifier.evaluateMultiSource(evidence, null, null);
+
+    assert.strictEqual(res.isQualified, true, "When threshold is disabled, small company is qualified");
+    assert.strictEqual(res.employee_count_status, "QUALIFIED");
+    assert.strictEqual(res.employee_size_range, "1-10");
+  });
+
+  // 18. Optional / Disabled Threshold with Unknown employee count -> Still eligible
+  test("Test Case 18: Optional Threshold (null / 0) with Unknown size -> Still QUALIFIED", () => {
+    const text = "We build custom Shopify websites for fast brands";
+    const evidence = employeeVerifier.parseHeadcountEvidence(text, "Website", null, null);
+    const res = employeeVerifier.evaluateMultiSource(null, evidence, null);
+
+    assert.strictEqual(res.isQualified, true, "When threshold is optional, unknown size does not block lead");
+    assert.strictEqual(res.employee_count_status, "QUALIFIED");
+  });
+
+  // 19. Custom Threshold (e.g. 50 employees)
+  test("Test Case 19: Custom Threshold (50 employees) -> 40 REJECTED, 50 ACCEPTED", () => {
+    const text40 = "Team of 40 developers";
+    const res40 = employeeVerifier.verifyEmployeeCount(text40, "Website", 50);
+    assert.strictEqual(res40.isQualified, false, "40 should be rejected when threshold is 50");
+
+    const text50 = "Team of 50 developers";
+    const res50 = employeeVerifier.verifyEmployeeCount(text50, "Website", 50);
+    assert.strictEqual(res50.isQualified, true, "50 should be accepted when threshold is 50");
   });
 
   console.log("\n=======================================================");

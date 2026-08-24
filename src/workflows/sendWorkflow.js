@@ -66,15 +66,19 @@ async function runSend(options = {}) {
   const limit = options.limit !== undefined ? options.limit : (config.sendLimit || null);
   const autoConfirm = options.yes || false;
 
-  // Fetch leads that have an email, are eligible (HIGH / MEDIUM confidence), uncontacted, and verified >= 30 employees
+  const threshold = config.minEmployeeCount;
   const leads = db.getFinalQualifiedLeads(limit ? limit * 3 : null);
-  const eligibleLeads = leads.filter(
-    (l) => l.email &&
-      ["HIGH", "MEDIUM"].includes(l.email_confidence) &&
-      !db.hasBeenContacted(l.email, l.id) &&
-      (l.employee_count_verified === 1 || l.employee_count_status === "QUALIFIED") &&
-      ((l.employee_count !== null && l.employee_count >= 30) || (l.employee_count_min !== null && l.employee_count_min >= 30))
-  );
+  const eligibleLeads = leads.filter((l) => {
+    if (!l.email || !["HIGH", "MEDIUM"].includes(l.email_confidence) || db.hasBeenContacted(l.email, l.id)) {
+      return false;
+    }
+    if (threshold && threshold > 0) {
+      const passesVerified = l.employee_count_verified === 1 || l.employee_count_status === "QUALIFIED";
+      const passesCount = (l.employee_count !== null && l.employee_count >= threshold) || (l.employee_count_min !== null && l.employee_count_min >= threshold);
+      return passesVerified && passesCount;
+    }
+    return true;
+  });
 
   if (eligibleLeads.length === 0) {
     logger.warn("No eligible uncontacted leads found in the database. Run `npm run leads` first.");

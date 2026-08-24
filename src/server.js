@@ -77,6 +77,7 @@ function startServer(port = process.env.PORT || 3000) {
           status: "healthy",
           uptime: process.uptime(),
           mode: config.dryRun ? "DRY_RUN" : "LIVE",
+          minEmployeeCount: config.minEmployeeCount,
           timestamp: new Date().toISOString()
         });
         return;

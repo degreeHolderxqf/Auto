@@ -462,9 +462,23 @@ const db = {
     return stmt.all();
   },
 
-  // Active Leads: strictly uncontacted, employee_count >= 30 verified, valid eligible email contacts
+  // Active Leads: strictly uncontacted, employee_count >= minThreshold verified (if configured), valid eligible email contacts
   getFinalQualifiedLeads(limit = null) {
     const database = getDatabase();
+    const threshold = config.minEmployeeCount;
+
+    let employeeFilter = "";
+    let statusExclusions = "'CONTACTED', 'SENT', 'EXCLUDED', 'SKIPPED_DUPLICATE', 'FAILED'";
+
+    if (threshold && threshold > 0) {
+      statusExclusions += ", 'REJECTED_HEADCOUNT', 'UNCERTAIN_HEADCOUNT', 'NOT_ELIGIBLE'";
+      employeeFilter = `
+        AND ((c.employee_count IS NOT NULL AND c.employee_count >= ${threshold}) OR (c.employee_count_min IS NOT NULL AND c.employee_count_min >= ${threshold}))
+        AND (c.employee_count_verified = 1 OR c.employee_count_verified IS NULL)
+        AND (c.employee_count_status = 'QUALIFIED' OR c.employee_count_status IS NULL)
+      `;
+    }
+
     let query = `
       SELECT 
         c.*,
@@ -484,10 +498,8 @@ const db = {
           CASE email_type WHEN 'HR / Recruitment' THEN 1 WHEN 'Hiring Management' THEN 2 ELSE 3 END
         )
       ) ct ON ct.company_id = c.id
-      WHERE c.status NOT IN ('CONTACTED', 'SENT', 'EXCLUDED', 'SKIPPED_DUPLICATE', 'FAILED', 'REJECTED_HEADCOUNT', 'UNCERTAIN_HEADCOUNT', 'NOT_ELIGIBLE')
-        AND ((c.employee_count IS NOT NULL AND c.employee_count >= 30) OR (c.employee_count_min IS NOT NULL AND c.employee_count_min >= 30))
-        AND (c.employee_count_verified = 1 OR c.employee_count_verified IS NULL)
-        AND (c.employee_count_status = 'QUALIFIED' OR c.employee_count_status IS NULL)
+      WHERE c.status NOT IN (${statusExclusions})
+        ${employeeFilter}
         AND ct.email IS NOT NULL
         AND c.id NOT IN (SELECT DISTINCT company_id FROM email_logs WHERE status IN ('SENT', 'DRY_RUN_SENT'))
         AND ct.email NOT IN (SELECT DISTINCT email FROM email_logs WHERE status IN ('SENT', 'DRY_RUN_SENT'))
@@ -530,54 +542,64 @@ const db = {
   // Statistics Summary
   getStatistics() {
     const database = getDatabase();
+    const threshold = config.minEmployeeCount;
+
     const totalDiscovered = database.prepare("SELECT count(*) as count FROM companies").get().count;
     const candidates = database.prepare("SELECT count(*) as count FROM companies WHERE status != 'EXCLUDED'").get().count;
     const excluded = database.prepare("SELECT count(*) as count FROM companies WHERE status = 'EXCLUDED'").get().count;
     const duplicates = database.prepare("SELECT count(*) as count FROM companies WHERE status = 'SKIPPED_DUPLICATE'").get().count;
     
     // Employee breakdown metrics
-    const employeeVerified = database.prepare(`
+    const employeeVerified = threshold && threshold > 0 ? database.prepare(`
       SELECT count(*) as count FROM companies 
-      WHERE ((employee_count >= 30) OR (employee_count_min >= 30))
+      WHERE ((employee_count >= ${threshold}) OR (employee_count_min >= ${threshold}))
         AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
-    `).get().count;
+    `).get().count : database.prepare("SELECT count(*) as count FROM companies WHERE employee_count_verified = 1 OR employee_count IS NOT NULL").get().count;
 
-    const employeeTooLow = database.prepare(`
+    const employeeTooLow = threshold && threshold > 0 ? database.prepare(`
       SELECT count(*) as count FROM companies 
-      WHERE (employee_count IS NOT NULL AND employee_count < 30)
-         OR (employee_count_max IS NOT NULL AND employee_count_max < 30)
+      WHERE (employee_count IS NOT NULL AND employee_count < ${threshold})
+         OR (employee_count_max IS NOT NULL AND employee_count_max < ${threshold})
          OR status = 'REJECTED_HEADCOUNT'
          OR employee_count_status = 'REJECTED'
-    `).get().count;
+    `).get().count : 0;
 
-    const employeeUncertain = database.prepare(`
+    const employeeUncertain = threshold && threshold > 0 ? database.prepare(`
       SELECT count(*) as count FROM companies 
       WHERE employee_count_status IN ('UNCERTAIN', 'NEED_MORE_VERIFICATION', 'UNKNOWN')
          OR status = 'UNCERTAIN_HEADCOUNT'
-    `).get().count;
+    `).get().count : 0;
 
     const employeeConflicting = database.prepare(`
       SELECT count(*) as count FROM companies 
       WHERE employee_count_status = 'CONFLICTING'
     `).get().count;
 
-    const qualified = database.prepare(`
+    const qualified = threshold && threshold > 0 ? database.prepare(`
       SELECT count(*) as count FROM companies 
       WHERE app_relevance_score >= 70 
-        AND ((employee_count >= 30) OR (employee_count_min >= 30))
+        AND ((employee_count >= ${threshold}) OR (employee_count_min >= ${threshold}))
         AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
+    `).get().count : database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE app_relevance_score >= 70
     `).get().count;
 
     const totalContacts = database.prepare("SELECT count(*) as count FROM contacts").get().count;
     const highConfidence = database.prepare("SELECT count(*) as count FROM contacts WHERE confidence = 'HIGH'").get().count;
     const mediumConfidence = database.prepare("SELECT count(*) as count FROM contacts WHERE confidence = 'MEDIUM'").get().count;
     const noContact = database.prepare("SELECT count(*) as count FROM companies WHERE id NOT IN (SELECT DISTINCT company_id FROM contacts)").get().count;
-    const readyToSend = database.prepare(`
+    
+    const readyToSend = threshold && threshold > 0 ? database.prepare(`
       SELECT count(*) as count FROM companies 
       WHERE status IN ('READY', 'APPROVED', 'EMAIL_FOUND', 'ACTIVE') 
-        AND ((employee_count >= 30) OR (employee_count_min >= 30))
+        AND ((employee_count >= ${threshold}) OR (employee_count_min >= ${threshold}))
         AND (employee_count_verified = 1 OR employee_count_status = 'QUALIFIED')
+    `).get().count : database.prepare(`
+      SELECT count(*) as count FROM companies 
+      WHERE status IN ('READY', 'APPROVED', 'EMAIL_FOUND', 'ACTIVE')
     `).get().count;
+
     const sent = database.prepare("SELECT count(*) as count FROM email_logs WHERE status = 'SENT'").get().count;
     const contacted = database.prepare("SELECT count(*) as count FROM companies WHERE status IN ('CONTACTED', 'SENT')").get().count;
     const failed = database.prepare("SELECT count(*) as count FROM email_logs WHERE status = 'FAILED'").get().count;
