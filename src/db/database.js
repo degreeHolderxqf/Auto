@@ -367,12 +367,40 @@ const db = {
 
   hasBeenContacted(email, companyId = null) {
     const database = getDatabase();
+    if (!email && !companyId) return false;
+
+    const normEmail = email ? String(email).trim().toLowerCase() : "";
+
+    // 1. Check company table status
     if (companyId) {
-      const stmt = database.prepare("SELECT 1 FROM email_logs WHERE (email = ? OR company_id = ?) AND status = 'SENT'");
-      return !!stmt.get(email, companyId);
+      const comp = database.prepare("SELECT status FROM companies WHERE id = ?").get(companyId);
+      if (comp && comp.status === "SENT") {
+        return true;
+      }
     }
-    const stmt = database.prepare("SELECT 1 FROM email_logs WHERE email = ? AND status = 'SENT'");
-    return !!stmt.get(email);
+
+    // 2. Check email_logs for matching email or company_id
+    if (companyId && normEmail) {
+      const stmt = database.prepare(`
+        SELECT 1 FROM email_logs 
+        WHERE (LOWER(email) = ? OR company_id = ?) 
+          AND status IN ('SENT', 'DRY_RUN_SENT')
+        LIMIT 1
+      `);
+      return !!stmt.get(normEmail, companyId);
+    }
+
+    if (companyId) {
+      const stmt = database.prepare("SELECT 1 FROM email_logs WHERE company_id = ? AND status IN ('SENT', 'DRY_RUN_SENT') LIMIT 1");
+      return !!stmt.get(companyId);
+    }
+
+    if (normEmail) {
+      const stmt = database.prepare("SELECT 1 FROM email_logs WHERE LOWER(email) = ? AND status IN ('SENT', 'DRY_RUN_SENT') LIMIT 1");
+      return !!stmt.get(normEmail);
+    }
+
+    return false;
   },
 
   getAllEmailLogs() {
