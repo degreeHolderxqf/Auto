@@ -170,6 +170,56 @@ function runMigrations(db) {
     CREATE INDEX IF NOT EXISTS idx_email_logs_status ON email_logs(status);
   `);
 
+  // Migration: Add missing phone/whatsapp columns to companies
+  try {
+    const compInfo = db.prepare("PRAGMA table_info(companies)").all();
+    const compCols = compInfo.map((c) => c.name);
+    const phoneColsComp = [
+      { name: "phone", type: "TEXT" },
+      { name: "normalized_phone", type: "TEXT" },
+      { name: "phone_type", type: "TEXT" },
+      { name: "phone_source", type: "TEXT" },
+      { name: "phone_source_url", type: "TEXT" },
+      { name: "whatsapp_available", type: "TEXT DEFAULT 'unknown'" },
+      { name: "whatsapp_status", type: "TEXT DEFAULT 'READY'" }
+    ];
+
+    for (const col of phoneColsComp) {
+      if (!compCols.includes(col.name)) {
+        try {
+          db.exec(`ALTER TABLE companies ADD COLUMN ${col.name} ${col.type};`);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } catch {}
+
+  // Migration: Add missing phone/whatsapp columns to contacts
+  try {
+    const contInfo = db.prepare("PRAGMA table_info(contacts)").all();
+    const contCols = contInfo.map((c) => c.name);
+    const phoneColsCont = [
+      { name: "phone", type: "TEXT" },
+      { name: "normalized_phone", type: "TEXT" },
+      { name: "phone_type", type: "TEXT" },
+      { name: "phone_source", type: "TEXT" },
+      { name: "phone_source_url", type: "TEXT" },
+      { name: "whatsapp_available", type: "TEXT DEFAULT 'unknown'" },
+      { name: "whatsapp_status", type: "TEXT DEFAULT 'READY'" }
+    ];
+
+    for (const col of phoneColsCont) {
+      if (!contCols.includes(col.name)) {
+        try {
+          db.exec(`ALTER TABLE contacts ADD COLUMN ${col.name} ${col.type};`);
+        } catch {
+          // ignore
+        }
+      }
+    }
+  } catch {}
+
   // 7. Settings Table (Key-Value Dynamic Configuration)
   db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
@@ -177,6 +227,27 @@ function runMigrations(db) {
       value TEXT NOT NULL,
       updated_at TEXT DEFAULT (datetime('now'))
     );
+  `);
+
+  // 8. WhatsApp Logs Table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS whatsapp_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      contact_id INTEGER,
+      phone TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL,
+      message_id TEXT,
+      error TEXT,
+      sent_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (company_id) REFERENCES companies(id),
+      FOREIGN KEY (contact_id) REFERENCES contacts(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_logs_phone ON whatsapp_logs(phone);
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_logs_company ON whatsapp_logs(company_id);
+    CREATE INDEX IF NOT EXISTS idx_whatsapp_logs_status ON whatsapp_logs(status);
   `);
 }
 

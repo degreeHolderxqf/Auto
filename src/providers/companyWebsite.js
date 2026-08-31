@@ -87,7 +87,7 @@ class CompanyWebsiteProvider {
     let careersUrl = null;
     let linkedInUrl = null;
 
-    // 1. Process Homepage
+    // 1. Process Homepage (Emails + Phone Numbers)
     const homepageEmails = validator.extractEmails(homepageHtml);
     homepageEmails.forEach((email) => {
       discoveredContacts.push({
@@ -98,11 +98,13 @@ class CompanyWebsiteProvider {
       });
     });
 
+    const discoveredPhones = [...validator.extractPhones(homepageHtml, "IN", effectiveBaseUrl)];
+
     sources.push({
       source_type: "Official Website Homepage",
       url: effectiveBaseUrl,
       title: "Company Homepage",
-      evidence: `Found ${homepageEmails.length} public email(s)`
+      evidence: `Found ${homepageEmails.length} public email(s), ${discoveredPhones.length} phone(s)`
     });
 
     // Extract LinkedIn link from homepage
@@ -167,12 +169,20 @@ class CompanyWebsiteProvider {
           });
         });
 
-        if (pageEmails.length > 0) {
+        // Extract subpage phones
+        const pagePhones = validator.extractPhones(pageRes.html, "IN", subUrl);
+        pagePhones.forEach((p) => {
+          if (!discoveredPhones.some((existing) => existing.normalized_phone === p.normalized_phone)) {
+            discoveredPhones.push(p);
+          }
+        });
+
+        if (pageEmails.length > 0 || pagePhones.length > 0) {
           sources.push({
             source_type: isCareers ? "Careers Page" : "Contact/Team Page",
             url: subUrl,
             title: isCareers ? "Company Careers Page" : "Company Subpage",
-            evidence: `Found ${pageEmails.length} email(s): ${pageEmails.join(", ")}`
+            evidence: `Found ${pageEmails.length} email(s), ${pagePhones.length} phone(s)`
           });
         }
 
@@ -191,6 +201,14 @@ class CompanyWebsiteProvider {
       }
     }
 
+    // Prioritize phone numbers: HR/Recruitment first, then WhatsApp/Business, then General
+    discoveredPhones.sort((a, b) => {
+      const typeScore = (t) => (t === "HR / RECRUITMENT" ? 1 : t === "BUSINESS" ? 2 : 3);
+      return typeScore(a.phone_type) - typeScore(b.phone_type);
+    });
+
+    const primaryPhone = discoveredPhones.length > 0 ? discoveredPhones[0] : null;
+
     // Deduplicate contacts by email
     const uniqueContacts = [];
     const seenEmails = new Set();
@@ -205,6 +223,15 @@ class CompanyWebsiteProvider {
     for (const contact of discoveredContacts) {
       if (!seenEmails.has(contact.email)) {
         seenEmails.add(contact.email);
+        if (primaryPhone) {
+          contact.phone = primaryPhone.phone;
+          contact.normalized_phone = primaryPhone.normalized_phone;
+          contact.phone_type = primaryPhone.phone_type;
+          contact.phone_source = "Website Crawling";
+          contact.phone_source_url = primaryPhone.source_url;
+          contact.whatsapp_available = primaryPhone.whatsapp_available;
+          contact.whatsapp_status = "READY";
+        }
         uniqueContacts.push(contact);
       }
     }
@@ -224,6 +251,8 @@ class CompanyWebsiteProvider {
 
     return {
       contacts: uniqueContacts,
+      phones: discoveredPhones,
+      primaryPhone,
       careersUrl,
       linkedInUrl,
       publicApps,

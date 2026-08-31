@@ -80,6 +80,13 @@ const db = {
           public_apps = COALESCE(?, public_apps),
           careers_url = COALESCE(?, careers_url),
           linkedin_url = COALESCE(?, linkedin_url),
+          phone = COALESCE(?, phone),
+          normalized_phone = COALESCE(?, normalized_phone),
+          phone_type = COALESCE(?, phone_type),
+          phone_source = COALESCE(?, phone_source),
+          phone_source_url = COALESCE(?, phone_source_url),
+          whatsapp_available = COALESCE(?, whatsapp_available),
+          whatsapp_status = COALESCE(?, whatsapp_status),
           status = CASE WHEN ? IS NOT NULL AND ? != 'DISCOVERED' THEN ? ELSE status END,
           notes = COALESCE(?, notes),
           updated_at = datetime('now')
@@ -115,6 +122,13 @@ const db = {
         companyData.public_apps ? (typeof companyData.public_apps === "object" ? JSON.stringify(companyData.public_apps) : companyData.public_apps) : null,
         companyData.careers_url || null,
         companyData.linkedin_url || null,
+        companyData.phone || null,
+        companyData.normalized_phone || null,
+        companyData.phone_type || null,
+        companyData.phone_source || null,
+        companyData.phone_source_url || null,
+        companyData.whatsapp_available || null,
+        companyData.whatsapp_status || null,
         companyData.status || null,
         companyData.status || null,
         companyData.status || null,
@@ -132,7 +146,8 @@ const db = {
           employee_count_source, employee_count_source_url, employee_count_verified,
           employee_count_verified_at, employee_count_status,
           app_relevance_score, lead_score, shopify_services, public_apps,
-          careers_url, linkedin_url, status, notes, updated_at
+          careers_url, linkedin_url, phone, normalized_phone, phone_type, phone_source, phone_source_url,
+          whatsapp_available, whatsapp_status, status, notes, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?,
@@ -140,6 +155,7 @@ const db = {
           ?, ?, ?,
           ?, ?,
           ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, datetime('now')
         )
       `);
@@ -171,6 +187,13 @@ const db = {
         companyData.public_apps ? (typeof companyData.public_apps === "object" ? JSON.stringify(companyData.public_apps) : companyData.public_apps) : null,
         companyData.careers_url || null,
         companyData.linkedin_url || null,
+        companyData.phone || null,
+        companyData.normalized_phone || null,
+        companyData.phone_type || null,
+        companyData.phone_source || null,
+        companyData.phone_source_url || null,
+        companyData.whatsapp_available || "unknown",
+        companyData.whatsapp_status || "READY",
         companyData.status || "DISCOVERED",
         companyData.notes || null
       );
@@ -268,6 +291,13 @@ const db = {
             WHEN ? = 'MEDIUM' AND confidence != 'HIGH' THEN 'MEDIUM'
             ELSE confidence
           END,
+          phone = COALESCE(?, phone),
+          normalized_phone = COALESCE(?, normalized_phone),
+          phone_type = COALESCE(?, phone_type),
+          phone_source = COALESCE(?, phone_source),
+          phone_source_url = COALESCE(?, phone_source_url),
+          whatsapp_available = COALESCE(?, whatsapp_available),
+          whatsapp_status = COALESCE(?, whatsapp_status),
           source_url = COALESCE(?, source_url),
           verified = CASE WHEN ? = 1 THEN 1 ELSE verified END,
           mx_valid = CASE WHEN ? = 1 THEN 1 ELSE mx_valid END,
@@ -282,6 +312,13 @@ const db = {
         contactData.email_type || null,
         contactData.confidence || "LOW",
         contactData.confidence || "LOW",
+        contactData.phone || null,
+        contactData.normalized_phone || null,
+        contactData.phone_type || null,
+        contactData.phone_source || null,
+        contactData.phone_source_url || null,
+        contactData.whatsapp_available || null,
+        contactData.whatsapp_status || null,
         contactData.source_url || null,
         contactData.verified ? 1 : 0,
         contactData.mx_valid ? 1 : 0,
@@ -293,9 +330,13 @@ const db = {
     } else {
       const stmt = database.prepare(`
         INSERT INTO contacts (
-          company_id, name, role, email, email_type, confidence, source_url, verified, mx_valid, notes
+          company_id, name, role, email, email_type, confidence, source_url,
+          phone, normalized_phone, phone_type, phone_source, phone_source_url, whatsapp_available, whatsapp_status,
+          verified, mx_valid, notes
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?
         )
       `);
 
@@ -307,6 +348,13 @@ const db = {
         contactData.email_type || "General",
         contactData.confidence || "LOW",
         contactData.source_url || null,
+        contactData.phone || null,
+        contactData.normalized_phone || null,
+        contactData.phone_type || null,
+        contactData.phone_source || null,
+        contactData.phone_source_url || null,
+        contactData.whatsapp_available || "unknown",
+        contactData.whatsapp_status || "READY",
         contactData.verified ? 1 : 0,
         contactData.mx_valid ? 1 : 0,
         contactData.notes || null
@@ -684,6 +732,110 @@ const db = {
       throw e;
     }
     return this.getAllSettings();
+  },
+
+  // WhatsApp Logs & Outreach
+  logWhatsAppMessage(logData) {
+    const database = getDatabase();
+    const stmt = database.prepare(`
+      INSERT INTO whatsapp_logs (
+        company_id, contact_id, phone, message, status, message_id, error, sent_at
+      ) VALUES (
+        ?, ?, ?, ?, ?, ?, ?, datetime('now')
+      )
+    `);
+    const res = stmt.run(
+      logData.company_id,
+      logData.contact_id || null,
+      logData.phone,
+      logData.message,
+      logData.status,
+      logData.message_id || null,
+      logData.error || null
+    );
+
+    // Update company whatsapp_status
+    if (logData.status === "SENT" || logData.status === "DRY_RUN_SENT") {
+      database.prepare("UPDATE companies SET whatsapp_status = 'SENT', updated_at = datetime('now') WHERE id = ?").run(logData.company_id);
+    } else if (logData.status === "FAILED") {
+      database.prepare("UPDATE companies SET whatsapp_status = 'FAILED', updated_at = datetime('now') WHERE id = ?").run(logData.company_id);
+    } else if (logData.status === "OPTED_OUT") {
+      database.prepare("UPDATE companies SET whatsapp_status = 'OPTED_OUT', updated_at = datetime('now') WHERE id = ?").run(logData.company_id);
+    }
+
+    return Number(res.lastInsertRowid);
+  },
+
+  getAllWhatsAppLogs() {
+    const database = getDatabase();
+    const stmt = database.prepare(`
+      SELECT wl.*, c.name as company_name, c.domain, ct.name as contact_name
+      FROM whatsapp_logs wl
+      LEFT JOIN companies c ON c.id = wl.company_id
+      LEFT JOIN contacts ct ON ct.id = wl.contact_id
+      ORDER BY wl.sent_at DESC
+    `);
+    return stmt.all();
+  },
+
+  getWhatsAppLogsByCompany(companyId) {
+    const database = getDatabase();
+    const stmt = database.prepare("SELECT * FROM whatsapp_logs WHERE company_id = ? ORDER BY sent_at DESC");
+    return stmt.all(companyId);
+  },
+
+  updateCompanyWhatsAppStatus(companyId, status) {
+    const database = getDatabase();
+    database.prepare("UPDATE companies SET whatsapp_status = ?, updated_at = datetime('now') WHERE id = ?").run(status, companyId);
+    return this.getCompanyById(companyId);
+  },
+
+  updateWhatsAppStatusByPhone(phone, status) {
+    const database = getDatabase();
+    const cleanPhone = phone.replace(/\D/g, "");
+    database.prepare(`
+      UPDATE companies 
+      SET whatsapp_status = ?, updated_at = datetime('now') 
+      WHERE normalized_phone = ? OR phone = ? OR REPLACE(REPLACE(REPLACE(phone, '+', ''), '-', ''), ' ', '') = ?
+    `).run(status, phone, phone, cleanPhone);
+
+    database.prepare(`
+      UPDATE contacts 
+      SET whatsapp_status = ? 
+      WHERE normalized_phone = ? OR phone = ? OR REPLACE(REPLACE(REPLACE(phone, '+', ''), '-', ''), ' ', '') = ?
+    `).run(status, phone, phone, cleanPhone);
+  },
+
+  isWhatsAppContacted(companyId, phone = null) {
+    const database = getDatabase();
+    if (companyId) {
+      const stmt = database.prepare("SELECT 1 FROM whatsapp_logs WHERE company_id = ? AND status IN ('SENT', 'DRY_RUN_SENT') LIMIT 1");
+      if (stmt.get(companyId)) return true;
+    }
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, "");
+      const stmt = database.prepare(`
+        SELECT 1 FROM whatsapp_logs 
+        WHERE (phone = ? OR REPLACE(REPLACE(REPLACE(phone, '+', ''), '-', ''), ' ', '') = ?)
+          AND status IN ('SENT', 'DRY_RUN_SENT') 
+        LIMIT 1
+      `);
+      if (stmt.get(phone, cleanPhone)) return true;
+    }
+    return false;
+  },
+
+  isWhatsAppOptedOut(phone) {
+    if (!phone) return false;
+    const database = getDatabase();
+    const cleanPhone = phone.replace(/\D/g, "");
+    const stmt = database.prepare(`
+      SELECT 1 FROM whatsapp_logs 
+      WHERE (phone = ? OR REPLACE(REPLACE(REPLACE(phone, '+', ''), '-', ''), ' ', '') = ?)
+        AND status = 'OPTED_OUT'
+      LIMIT 1
+    `);
+    return !!stmt.get(phone, cleanPhone);
   }
 };
 

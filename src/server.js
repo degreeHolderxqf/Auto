@@ -49,6 +49,53 @@ function sendError(res, statusCode, message, details = null) {
   sendJson(res, statusCode, { success: false, error: message, details });
 }
 
+function getEvolutionHttpStatus(errorCode, upstreamStatus = 0) {
+  if (upstreamStatus === 401 || upstreamStatus === 403) return upstreamStatus;
+  if (upstreamStatus === 429) return 429;
+  if (upstreamStatus >= 500) return upstreamStatus;
+
+  switch (errorCode) {
+    case "EVOLUTION_INVALID_URL":
+    case "EVOLUTION_MISSING_API_KEY":
+    case "EVOLUTION_BAD_REQUEST":
+    case "INSTANCE_CREATE_FAILED":
+    case "QR_NOT_AVAILABLE":
+    case "QR_GENERATION_FAILED":
+      return 400;
+    case "EVOLUTION_AUTH_ERROR":
+      return 401;
+    case "EVOLUTION_OFFLINE":
+      return 503;
+    case "EVOLUTION_TIMEOUT":
+      return 504;
+    case "EVOLUTION_RATE_LIMIT":
+      return 429;
+    case "EVOLUTION_ENDPOINT_NOT_FOUND":
+    case "INSTANCE_NOT_FOUND":
+      return 404;
+    case "EVOLUTION_API_SERVER_ERROR":
+      return upstreamStatus >= 500 ? upstreamStatus : 502;
+    default:
+      return 400;
+  }
+}
+
+function sendEvolutionError(res, result) {
+  const errorCode = result.errorCode || result.error || "EVOLUTION_API_ERROR";
+  const httpStatus = getEvolutionHttpStatus(errorCode, result.status);
+  sendJson(res, httpStatus, {
+    success: false,
+    error: result.details || result.message || result.error || "Evolution API request failed",
+    errorCode,
+    upstreamStatus: result.status || 0,
+    online: result.online,
+    authenticated: result.authenticated,
+    profile: result.profile || null,
+    version: result.version || null,
+    instanceName: result.instanceName || null
+  });
+}
+
 function startServer(port = process.env.PORT || 3000) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
@@ -303,6 +350,192 @@ function startServer(port = process.env.PORT || 3000) {
       if (pathname === "/api/email/history" && req.method === "GET") {
         const history = db.getAllEmailLogs();
         sendJson(res, 200, { success: true, count: history.length, history });
+        return;
+      }
+
+      // 10. WhatsApp Status & Connect APIs
+      if (pathname === "/api/whatsapp/status" && req.method === "GET") {
+        const evolutionGoClient = require("./services/evolutionGoClient");
+        const health = await evolutionGoClient.checkHealth();
+        let stateRes = { connected: false, state: "DISCONNECTED" };
+        if (health.online && health.authenticated) {
+          stateRes = await evolutionGoClient.getConnectionState();
+        }
+        const apiCfg = evolutionGoClient.getApiConfig();
+        sendJson(res, 200, {
+          success: true,
+          online: health.online,
+          authenticated: health.authenticated,
+          version: health.version || null,
+          profile: health.profile || null,
+          connected: stateRes.connected,
+          state: stateRes.state,
+          error: health.error || stateRes.error || null,
+          errorCode: health.error || stateRes.error || null,
+          upstreamStatus: health.status || stateRes.status || 0,
+          apiUrl: apiCfg.apiUrl,
+          instanceName: apiCfg.instanceName,
+          enabled: apiCfg.enabled,
+          dryRun: apiCfg.dryRun,
+          delayMs: apiCfg.delayMs
+        });
+        return;
+      }
+
+      if (pathname === "/api/whatsapp/connect" && req.method === "POST") {
+        const evolutionGoClient = require("./services/evolutionGoClient");
+        const qrRes = await evolutionGoClient.getQrCode();
+        if (qrRes.ok) {
+          sendJson(res, 200, { 
+            success: true,
+            connected: qrRes.connected || false,
+            instanceName: qrRes.instanceName,
+            qrcode: qrRes.qrcode, 
+            pairingCode: qrRes.pairingCode, 
+            simulation: qrRes.simulation, 
+            message: qrRes.message,
+            profile: qrRes.profile || null,
+            version: qrRes.version || null
+          });
+        } else {
+          sendEvolutionError(res, qrRes);
+        }
+        return;
+      }
+
+      if (pathname === "/api/whatsapp/disconnect" && req.method === "POST") {
+        const evolutionGoClient = require("./services/evolutionGoClient");
+        await evolutionGoClient.logoutInstance();
+        sendJson(res, 200, { success: true, message: "WhatsApp session disconnected successfully" });
+        return;
+      }
+
+      if (pathname === "/api/whatsapp/test-connection" && req.method === "POST") {
+        const settingsService = require("./services/settingsService");
+        const body = await parseBody(req);
+        const result = await settingsService.testEvolutionConnection(body);
+        if (result.success) {
+          sendJson(res, 200, result);
+        } else {
+          sendEvolutionError(res, result);
+        }
+        return;
+      }
+
+      if (pathname === "/api/whatsapp/simulate-connect" && req.method === "POST") {
+        const evolutionGoClient = require("./services/evolutionGoClient");
+        const body = await parseBody(req);
+        const connected = body.connected !== undefined ? Boolean(body.connected) : true;
+        evolutionGoClient.setSimulatedConnected(connected);
+        sendJson(res, 200, { success: true, connected, message: connected ? "Simulated WhatsApp connection activated" : "Simulated connection disconnected" });
+        return;
+      }
+
+      // 11. WhatsApp Preview API
+      if (pathname.startsWith("/api/whatsapp/preview/") && req.method === "GET") {
+        const companyId = parseInt(pathname.replace("/api/whatsapp/preview/", ""), 10);
+        if (isNaN(companyId)) {
+          sendError(res, 400, "Invalid company ID");
+          return;
+        }
+
+        const company = db.getCompanyById(companyId);
+        if (!company) {
+          sendError(res, 404, "Company not found");
+          return;
+        }
+
+        const contacts = db.getContactsByCompanyId(companyId);
+        const bestContact = contacts.length > 0 ? contacts[0] : null;
+
+        const whatsappGenerator = require("./services/whatsappGenerator");
+        const preview = whatsappGenerator.generateMessage(company, bestContact);
+        sendJson(res, 200, { success: true, preview });
+        return;
+      }
+
+      // 12. WhatsApp Send APIs
+      if (pathname === "/api/whatsapp/send" && req.method === "POST") {
+        const whatsappWorkflow = require("./workflows/whatsappWorkflow");
+        const body = await parseBody(req);
+        if (!body.leadId && !body.companyId) {
+          sendError(res, 400, "leadId or companyId is required");
+          return;
+        }
+
+        const leadId = body.leadId || body.companyId;
+        const result = await whatsappWorkflow.sendSingleMessage(leadId, body.phone, body.message);
+        if (result.success) {
+          sendJson(res, 200, result);
+        } else {
+          sendError(res, 400, result.error);
+        }
+        return;
+      }
+
+      if (pathname === "/api/whatsapp/send-batch" && req.method === "POST") {
+        const whatsappWorkflow = require("./workflows/whatsappWorkflow");
+        const body = await parseBody(req);
+        const leadIds = Array.isArray(body.leadIds) ? body.leadIds : [];
+        if (leadIds.length === 0) {
+          sendError(res, 400, "No lead IDs provided for WhatsApp batch send");
+          return;
+        }
+
+        const results = await whatsappWorkflow.sendBatch(leadIds);
+        sendJson(res, 200, { success: true, results });
+        return;
+      }
+
+      // 13. WhatsApp Logs API
+      if (pathname === "/api/whatsapp/logs" && req.method === "GET") {
+        const logs = db.getAllWhatsAppLogs();
+        sendJson(res, 200, { success: true, count: logs.length, logs });
+        return;
+      }
+
+      // 14. Webhook for Evolution Go (Incoming replies & status)
+      if (pathname === "/api/webhooks/evolution" && req.method === "POST") {
+        try {
+          const body = await parseBody(req);
+          logger.info("[Evolution Go Webhook]", JSON.stringify(body).substring(0, 200));
+
+          const event = body.event || body.type;
+          const data = body.data || body;
+
+          // Check for incoming message / reply
+          const messageObj = data.message || (data.messages && data.messages[0]);
+          const remoteJid = data.key?.remoteJid || (messageObj && messageObj.key?.remoteJid);
+          const fromMe = data.key?.fromMe || (messageObj && messageObj.key?.fromMe);
+
+          if (remoteJid && !fromMe) {
+            const senderPhone = remoteJid.split("@")[0];
+            const textContent =
+              messageObj?.conversation ||
+              messageObj?.extendedTextMessage?.text ||
+              messageObj?.text ||
+              "";
+
+            const upperText = String(textContent).trim().toUpperCase();
+
+            // Opt-out detection (STOP, UNSUBSCRIBE, DO NOT CONTACT, NO)
+            const optOutKeywords = ["STOP", "UNSUBSCRIBE", "DO NOT CONTACT", "OPT OUT", "NO"];
+            const isOptOut = optOutKeywords.some((kw) => upperText === kw || upperText.startsWith(kw + " ") || upperText.startsWith(kw + "."));
+
+            if (isOptOut) {
+              logger.warn(`WhatsApp opt-out detected from +${senderPhone}: "${textContent}"`);
+              db.updateWhatsAppStatusByPhone(senderPhone, "OPTED_OUT");
+            } else {
+              logger.info(`WhatsApp reply received from +${senderPhone}: "${textContent}"`);
+              db.updateWhatsAppStatusByPhone(senderPhone, "REPLIED");
+            }
+          }
+
+          sendJson(res, 200, { success: true, received: true });
+        } catch (err) {
+          logger.error("Error processing Evolution Go webhook:", err.message);
+          sendJson(res, 200, { success: false, error: err.message });
+        }
         return;
       }
 

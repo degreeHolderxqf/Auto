@@ -21,9 +21,11 @@
     "csv-writer": "^1.6.0",
     "dotenv": "^16.4.7",
     "jsdom": "^28.1.0",
+    "libphonenumber-js": "^1.13.11",
     "nodemailer": "^6.9.2",
     "pdfjs-dist": "^5.4.530",
     "puppeteer": "^24.34.0",
+    "qrcode": "^1.5.4",
     "xlsx": "^0.18.5"
   }
 }

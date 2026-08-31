@@ -3,6 +3,19 @@ const config = require("../config");
 const db = require("../db/database");
 const logger = require("./logger");
 
+const MASKED_SECRET = "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022";
+
+function isMaskedSecret(value) {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  return (
+    trimmed === MASKED_SECRET ||
+    trimmed === "********" ||
+    /^\u2022+$/.test(trimmed) ||
+    /^(?:\u00e2\u20ac\u00a2)+$/.test(trimmed)
+  );
+}
+
 class SettingsService {
   constructor() {
     this.cachedSettings = null;
@@ -50,7 +63,15 @@ class SettingsService {
       sendLimit: config.sendLimit || 50,
       emailDelayMs: config.emailDelayMs || 5000,
       batchSize: config.batchSize || 10,
-      batchDelayMs: config.batchDelayMs || 60000
+      batchDelayMs: config.batchDelayMs || 60000,
+
+      // 6. Evolution API WhatsApp Settings
+      evolutionApiUrl: config.evolution.apiUrl || "https://evolution-api-latest-h0yy.onrender.com",
+      evolutionApiKey: config.evolution.apiKey || "",
+      evolutionInstanceName: config.evolution.instanceName || "job-search",
+      whatsAppEnabled: config.evolution.enabled !== undefined ? config.evolution.enabled : true,
+      whatsAppDryRun: config.evolution.dryRun !== undefined ? config.evolution.dryRun : true,
+      whatsAppDelayMs: config.evolution.delayMs || 15000
     };
   }
 
@@ -64,6 +85,11 @@ class SettingsService {
 
     try {
       dbOverrides = db.getAllSettings();
+      // Auto-migrate legacy localhost:8080 if user has updated config/env
+      if (dbOverrides.evolutionApiUrl === "http://localhost:8080" && defaults.evolutionApiUrl !== "http://localhost:8080") {
+        dbOverrides.evolutionApiUrl = defaults.evolutionApiUrl;
+        db.saveSetting("evolutionApiUrl", defaults.evolutionApiUrl);
+      }
     } catch {
       // Table might not be ready yet
     }
@@ -72,6 +98,11 @@ class SettingsService {
       ...defaults,
       ...dbOverrides
     };
+
+    // If evolutionApiKey was stored as empty string in DB, fallback to .env/defaults
+    if (!merged.evolutionApiKey && defaults.evolutionApiKey) {
+      merged.evolutionApiKey = defaults.evolutionApiKey;
+    }
 
     // Ensure candidateSkills is an array
     if (typeof merged.candidateSkills === "string") {
@@ -100,13 +131,17 @@ class SettingsService {
       }
     }
 
+    // Ensure WhatsApp numeric fields
+    if (merged.whatsAppDelayMs) merged.whatsAppDelayMs = parseInt(merged.whatsAppDelayMs, 10);
+
     // Sync to in-memory config object
     this.syncConfig(merged);
 
     if (maskSecrets) {
       return {
         ...merged,
-        smtpPass: merged.smtpPass ? "••••••••" : ""
+        smtpPass: merged.smtpPass ? MASKED_SECRET : "",
+        evolutionApiKey: merged.evolutionApiKey ? MASKED_SECRET : ""
       };
     }
 
@@ -115,15 +150,18 @@ class SettingsService {
 
   /**
    * Updates settings and saves them to DB.
-   * If smtpPass is "••••••••" or empty, preserves existing password.
+   * If smtpPass or evolutionApiKey is masked or empty, preserves existing.
    */
   updateSettings(newSettings = {}) {
     const current = this.getSettings(false);
     const updated = { ...current, ...newSettings };
 
-    // Prevent overwriting actual password with masked placeholder
-    if (newSettings.smtpPass === "••••••••" || newSettings.smtpPass === undefined || newSettings.smtpPass === "") {
+    // Prevent overwriting actual passwords with masked placeholder
+    if (isMaskedSecret(newSettings.smtpPass) || newSettings.smtpPass === undefined || newSettings.smtpPass === "") {
       updated.smtpPass = current.smtpPass;
+    }
+    if (isMaskedSecret(newSettings.evolutionApiKey) || newSettings.evolutionApiKey === undefined || newSettings.evolutionApiKey === "") {
+      updated.evolutionApiKey = current.evolutionApiKey;
     }
 
     // Format candidateSkills array
@@ -139,6 +177,10 @@ class SettingsService {
     if (updated.dryRun !== undefined) updated.dryRun = Boolean(updated.dryRun);
     if (updated.targetLeads) updated.targetLeads = parseInt(updated.targetLeads, 10);
     if (updated.minAppRelevanceScore) updated.minAppRelevanceScore = parseInt(updated.minAppRelevanceScore, 10);
+
+    if (updated.whatsAppEnabled !== undefined) updated.whatsAppEnabled = Boolean(updated.whatsAppEnabled);
+    if (updated.whatsAppDryRun !== undefined) updated.whatsAppDryRun = Boolean(updated.whatsAppDryRun);
+    if (updated.whatsAppDelayMs) updated.whatsAppDelayMs = parseInt(updated.whatsAppDelayMs, 10);
 
     if (updated.minEmployeeCount === 0 || String(updated.minEmployeeCount).toLowerCase() === "false" || updated.minEmployeeCount === "" || updated.minEmployeeCount === null) {
       updated.minEmployeeCount = null;
@@ -178,6 +220,14 @@ class SettingsService {
     config.emailDelayMs = settings.emailDelayMs;
     config.batchSize = settings.batchSize;
     config.batchDelayMs = settings.batchDelayMs;
+
+    if (!config.evolution) config.evolution = {};
+    config.evolution.apiUrl = (settings.evolutionApiUrl || "https://evolution-api-latest-h0yy.onrender.com").replace(/\/+$/, "");
+    config.evolution.apiKey = settings.evolutionApiKey || "";
+    config.evolution.instanceName = settings.evolutionInstanceName || "job-search";
+    config.evolution.enabled = settings.whatsAppEnabled !== undefined ? settings.whatsAppEnabled : true;
+    config.evolution.dryRun = settings.whatsAppDryRun !== undefined ? settings.whatsAppDryRun : true;
+    config.evolution.delayMs = settings.whatsAppDelayMs || 15000;
 
     if (settings.resumePath) {
       config.resumePath = settings.resumePath;
@@ -231,6 +281,22 @@ class SettingsService {
         error: err.message || "Failed to authenticate with SMTP server. Check credentials."
       };
     }
+  }
+
+  /**
+   * Tests Evolution API Connection live
+   */
+  async testEvolutionConnection(customEvolution = {}) {
+    const current = this.getSettings(false);
+    const apiUrl = (customEvolution.evolutionApiUrl || current.evolutionApiUrl || "https://evolution-api-latest-h0yy.onrender.com").replace(/\/+$/, "");
+    let apiKey = customEvolution.evolutionApiKey !== undefined ? customEvolution.evolutionApiKey : current.evolutionApiKey;
+    if (isMaskedSecret(apiKey)) {
+      apiKey = current.evolutionApiKey;
+    }
+    const instanceName = customEvolution.evolutionInstanceName || current.evolutionInstanceName || "job-search";
+
+    const evolutionClient = require("./evolutionGoClient");
+    return await evolutionClient.testConnection(apiUrl, apiKey, instanceName);
   }
 }
 

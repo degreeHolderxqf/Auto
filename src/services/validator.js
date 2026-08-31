@@ -168,6 +168,142 @@ const validator = {
     }
 
     return "MEDIUM";
+  },
+
+  /**
+   * Phone Number Normalization with libphonenumber-js
+   */
+  normalizePhone(phoneStr, defaultCountry = "IN") {
+    if (!phoneStr || typeof phoneStr !== "string") return null;
+    try {
+      const { parsePhoneNumberFromString } = require("libphonenumber-js");
+      const parsed = parsePhoneNumberFromString(phoneStr, defaultCountry);
+      if (parsed && parsed.isValid()) {
+        return {
+          formatted: parsed.formatInternational(), // e.g. +91 98765 43210
+          e164: parsed.format("E.164"), // e.g. +919876543210
+          country: parsed.country,
+          nationalNumber: parsed.nationalNumber
+        };
+      }
+    } catch {}
+    return null;
+  },
+
+  /**
+   * Extracts and filters public business phone numbers from HTML/text.
+   * STRICT RULE: Ignores customer support, sales inquiries, and toll-free helpline numbers.
+   */
+  extractPhones(textOrHtml, defaultCountry = "IN", sourceUrl = null) {
+    if (!textOrHtml || typeof textOrHtml !== "string") return [];
+
+    const discovered = [];
+    const seen = new Set();
+
+    // 1. Detect explicit WhatsApp direct links (wa.me / api.whatsapp.com)
+    const waRegex = /(?:https?:\/\/)?(?:wa\.me\/|api\.whatsapp\.com\/send\?(?:[^"'\s]*&)?phone=)(\+?[0-9]{7,15})/gi;
+    const waMatches = [...textOrHtml.matchAll(waRegex)];
+    for (const match of waMatches) {
+      const norm = this.normalizePhone(match[1], defaultCountry);
+      if (norm && !seen.has(norm.e164)) {
+        seen.add(norm.e164);
+        discovered.push({
+          raw: match[1],
+          phone: norm.formatted,
+          normalized_phone: norm.e164,
+          phone_type: "BUSINESS",
+          source_url: sourceUrl,
+          whatsapp_available: "yes"
+        });
+      }
+    }
+
+    // 2. Detect tel: links
+    const telRegex = /href=["']tel:([^"']+)["']/gi;
+    const telMatches = [...textOrHtml.matchAll(telRegex)];
+    for (const match of telMatches) {
+      const raw = match[1].split("?")[0].trim();
+      const norm = this.normalizePhone(raw, defaultCountry);
+      if (norm && !seen.has(norm.e164)) {
+        // Check if toll-free or sales
+        if (norm.nationalNumber.startsWith("1800") || norm.nationalNumber.startsWith("1860") || norm.nationalNumber.startsWith("800")) {
+          continue; // Skip toll-free helpdesk
+        }
+        seen.add(norm.e164);
+        discovered.push({
+          raw,
+          phone: norm.formatted,
+          normalized_phone: norm.e164,
+          phone_type: "COMPANY",
+          source_url: sourceUrl,
+          whatsapp_available: "unknown"
+        });
+      }
+    }
+
+    // 3. Scan plain text for formatted international & domestic phone numbers
+    const generalPhoneRegex = /(?:\+?[1-9]\d{0,2}[ -]?)?(?:\(?\d{2,5}\)?[ -]?)?\d{3,4}[ -]?\d{3,5}/g;
+    const textMatches = [...textOrHtml.matchAll(generalPhoneRegex)];
+
+    for (const match of textMatches) {
+      const rawCandidate = match[0].trim();
+      if (rawCandidate.length < 8 || rawCandidate.length > 20) continue;
+      // Skip strings that are purely digits of typical IDs or postal codes
+      if (/^\d{5,6}$/.test(rawCandidate)) continue;
+
+      const norm = this.normalizePhone(rawCandidate, defaultCountry);
+      if (norm && !seen.has(norm.e164)) {
+        // Skip toll-free helpline numbers
+        if (norm.nationalNumber.startsWith("1800") || norm.nationalNumber.startsWith("1860") || norm.nationalNumber.startsWith("800")) {
+          continue;
+        }
+
+        // Check context around the phone number within the current line / tag block
+        const before = textOrHtml.substring(0, match.index || 0);
+        const lastBreak = Math.max(
+          before.lastIndexOf("\n"),
+          before.lastIndexOf("<p"),
+          before.lastIndexOf("<div"),
+          before.lastIndexOf("<li"),
+          before.lastIndexOf("<tr"),
+          before.lastIndexOf(">")
+        );
+        const start = lastBreak >= 0 ? lastBreak : Math.max(0, (match.index || 0) - 50);
+
+        const after = textOrHtml.substring((match.index || 0) + rawCandidate.length);
+        const nextBreakIndex = after.search(/\n|<\/p>|<\/div>|<\/li>|<\/tr>|<br|<hr|</i);
+        const end = nextBreakIndex >= 0 ? (match.index || 0) + rawCandidate.length + nextBreakIndex : Math.min(textOrHtml.length, (match.index || 0) + rawCandidate.length + 50);
+
+        const context = textOrHtml.substring(start, end).toLowerCase();
+
+        // STRICT FILTER: If labeled customer care, support, sales inquiry, billing, toll free -> ignore
+        const isSupportOrSales = context.includes("customer care") || context.includes("support") || context.includes("help desk") || context.includes("toll free") || context.includes("toll-free") || context.includes("sales inquiry") || context.includes("sales hotline");
+        const isHiring = context.includes("career") || context.includes("job") || context.includes("recruitment") || context.includes("talent") || context.includes("hr") || context.includes("hiring");
+
+        if (isSupportOrSales && !isHiring) {
+          continue;
+        }
+
+        let phoneType = "COMPANY";
+        if (isHiring) {
+          phoneType = "HR / RECRUITMENT";
+        } else if (context.includes("whatsapp") || context.includes("chat")) {
+          phoneType = "BUSINESS";
+        }
+
+        seen.add(norm.e164);
+        discovered.push({
+          raw: rawCandidate,
+          phone: norm.formatted,
+          normalized_phone: norm.e164,
+          phone_type: phoneType,
+          source_url: sourceUrl,
+          whatsapp_available: phoneType === "BUSINESS" || context.includes("whatsapp") ? "yes" : "unknown"
+        });
+      }
+    }
+
+    return discovered;
   }
 };
 

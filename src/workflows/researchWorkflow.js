@@ -173,6 +173,8 @@ async function researchCompany(company) {
     }
 
     // 5. Company IS QUALIFIED (>= 30 verified) -> Proceed with Email Discovery & Validation
+    const primaryPhone = webResearch.primaryPhone || null;
+
     for (const rawContact of webResearch.contacts) {
       const mxValid = await validator.checkMxRecords(rawContact.email);
       db.upsertContact({
@@ -181,6 +183,13 @@ async function researchCompany(company) {
         email_type: rawContact.email_type,
         confidence: rawContact.confidence,
         source_url: rawContact.source_url,
+        phone: rawContact.phone || (primaryPhone ? primaryPhone.phone : null),
+        normalized_phone: rawContact.normalized_phone || (primaryPhone ? primaryPhone.normalized_phone : null),
+        phone_type: rawContact.phone_type || (primaryPhone ? primaryPhone.phone_type : null),
+        phone_source: "Website Crawling",
+        phone_source_url: rawContact.source_url || (primaryPhone ? primaryPhone.source_url : null),
+        whatsapp_available: rawContact.whatsapp_available || (primaryPhone ? primaryPhone.whatsapp_available : "unknown"),
+        whatsapp_status: "READY",
         verified: 1,
         mx_valid: mxValid ? 1 : 0,
         notes: "Discovered on official company website"
@@ -201,6 +210,13 @@ async function researchCompany(company) {
           email_type: sc.email_type,
           confidence: sc.confidence,
           source_url: sc.source_url,
+          phone: primaryPhone ? primaryPhone.phone : null,
+          normalized_phone: primaryPhone ? primaryPhone.normalized_phone : null,
+          phone_type: primaryPhone ? primaryPhone.phone_type : null,
+          phone_source: "Website Crawling",
+          phone_source_url: primaryPhone ? primaryPhone.source_url : null,
+          whatsapp_available: primaryPhone ? primaryPhone.whatsapp_available : "unknown",
+          whatsapp_status: "READY",
           verified: 1,
           mx_valid: mxValid ? 1 : 0,
           notes: "Discovered via public search snippet"
@@ -265,12 +281,20 @@ async function researchCompany(company) {
       public_apps: webResearch.publicApps.join(", "),
       careers_url: webResearch.careersUrl,
       linkedin_url: linkedinUrl,
+      phone: primaryPhone ? primaryPhone.phone : null,
+      normalized_phone: primaryPhone ? primaryPhone.normalized_phone : null,
+      phone_type: primaryPhone ? primaryPhone.phone_type : null,
+      phone_source: primaryPhone ? "Website Crawling" : null,
+      phone_source_url: primaryPhone ? primaryPhone.source_url : null,
+      whatsapp_available: primaryPhone ? primaryPhone.whatsapp_available : "unknown",
+      whatsapp_status: "READY",
       status: finalStatus,
       notes: evalResult.reason
     });
 
     const contactLog = bestContact ? `${bestContact.email} (${bestContact.confidence}, ${bestContact.email_type})` : "None found (Strict No-Guess)";
-    logger.info(`   Employees: ${evalResult.employee_count || evalResult.employee_size_range} [${evalResult.employee_count_source}] | Lead Score: ${leadScore} | Contact: ${contactLog} | Status: ${finalStatus}`);
+    const phoneLog = primaryPhone ? ` | Phone: ${primaryPhone.phone} (${primaryPhone.phone_type})` : "";
+    logger.info(`   Employees: ${evalResult.employee_count || evalResult.employee_size_range} [${evalResult.employee_count_source}] | Lead Score: ${leadScore} | Contact: ${contactLog}${phoneLog} | Status: ${finalStatus}`);
 
     return {
       companyId: company.id,

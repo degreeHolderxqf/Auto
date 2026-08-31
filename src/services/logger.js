@@ -41,6 +41,13 @@ const logger = {
     writeToFile("errors.log", errText);
   },
 
+  debug(message, meta = null) {
+    if (process.env.NODE_ENV === "development" || process.env.DEBUG === "true") {
+      const text = meta ? `${message} ${JSON.stringify(meta)}` : message;
+      console.log(`🔍 ${message}`);
+    }
+  },
+
   email(message, meta = null) {
     const text = meta ? `${message} ${JSON.stringify(meta)}` : message;
     console.log(`📧 ${message}`);

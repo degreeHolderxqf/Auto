@@ -65,6 +65,16 @@ const config = {
   maxRetries: parseInt(process.env.MAX_RETRIES || "2", 10),
   retryDelayMs: parseInt(process.env.RETRY_DELAY_MS || "5000", 10),
 
+  // Evolution API WhatsApp Integration
+  evolution: {
+    apiUrl: (process.env.EVOLUTION_API_URL || "https://evolution-api-latest-h0yy.onrender.com").replace(/\/+$/, ""),
+    apiKey: process.env.EVOLUTION_API_KEY || "",
+    instanceName: process.env.EVOLUTION_INSTANCE_NAME || "job-search",
+    enabled: process.env.WHATSAPP_ENABLED !== "false" && process.env.WHATSAPP_ENABLED !== "0",
+    dryRun: process.env.WHATSAPP_DRY_RUN !== "false" && process.env.WHATSAPP_DRY_RUN !== "0",
+    delayMs: parseInt(process.env.WHATSAPP_DELAY_MS || "15000", 10)
+  },
+
   // Web Crawling timeouts
   httpTimeoutMs: parseInt(process.env.HTTP_TIMEOUT_MS || "12000", 10)
 };
