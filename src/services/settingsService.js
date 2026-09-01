@@ -235,7 +235,77 @@ class SettingsService {
   }
 
   /**
+   * Categorize SMTP errors so the UI can show the right message.
+   * Returns: { code, message, stage }
+   * - NETWORK_TIMEOUT: TCP / DNS / firewall block (NOT an auth failure)
+   * - SMTP_AUTH_FAILED: EAUTH / 535
+   * - SMTP_REJECTED: 5xx
+   * - SMTP_READY: 250
+   */
+  categorizeSmtpError(err) {
+    const code = err && err.code ? String(err.code).toUpperCase() : "";
+    const msg = (err && err.message) ? String(err.message) : "";
+    const responseCode = err && err.responseCode ? parseInt(err.responseCode, 10) : 0;
+    const lower = msg.toLowerCase();
+
+    // Network / connectivity / DNS failures (NOT auth)
+    const networkCodes = ["ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "EDNS", "ENETUNREACH", "EHOSTUNREACH", "EHOSTNOTFOUND", "EPIPE", "ESOCKETTIMEDOUT", "GREETINGTIMEOUT"];
+    const networkHints = ["timeout", "timed out", "connection timeout", "enotfound", "getaddrinfo", "econnrefused", "econnreset", "ehostunreach", "enetunreach", "network is unreachable", "connect timeout"];
+    if (networkCodes.includes(code) || networkHints.some((h) => lower.includes(h))) {
+      return {
+        code: "NETWORK_TIMEOUT",
+        stage: "connection",
+        message: `SMTP connection to ${err && err.host ? err.host : "smtp server"}:${err && err.port ? err.port : 587} failed (${code || "TIMEOUT"}). The server may be blocking outbound SMTP traffic. Try port 465 (SSL) or check network/firewall.`
+      };
+    }
+
+    // Authentication failure
+    if (code === "EAUTH" || responseCode === 535 || (lower.includes("auth") && lower.includes("fail")) || lower.includes("invalid credentials") || lower.includes("username and password not accepted")) {
+      return {
+        code: "SMTP_AUTH_FAILED",
+        stage: "auth",
+        message: `SMTP authentication failed for user. Check Gmail App Password and ensure 2-Step Verification is enabled.`
+      };
+    }
+
+    // TLS / SSL
+    if (code === "ETLS" || code === "ESSL" || lower.includes("tls") || lower.includes("ssl") || lower.includes("unsupported protocol") || lower.includes("handshake")) {
+      return {
+        code: "TLS_ERROR",
+        stage: "tls",
+        message: `SMTP TLS/SSL handshake failed. Check port (587=STARTTLS, 465=SSL) and secure flag.`
+      };
+    }
+
+    // SMTP 4xx rejection
+    if (responseCode >= 400 && responseCode < 500) {
+      return {
+        code: "SMTP_REJECTED",
+        stage: "smtp",
+        message: `SMTP server rejected the request (${responseCode}). ${msg || ""}`.trim()
+      };
+    }
+
+    // SMTP 5xx server error
+    if (responseCode >= 500) {
+      return {
+        code: "SMTP_SERVER_ERROR",
+        stage: "smtp",
+        message: `SMTP server error (${responseCode}). ${msg || ""}`.trim()
+      };
+    }
+
+    return {
+      code: code || "SMTP_ERROR",
+      stage: "unknown",
+      message: msg || "Unknown SMTP failure"
+    };
+  }
+
+  /**
    * Tests SMTP Connection live with nodemailer.verify()
+   * Must match the production transporter in emailSender.js exactly so
+   * "SMTP test" reflects what the actual send path will do.
    */
   async testSmtpConnection(customSmtp = {}) {
     const current = this.getSettings(false);
@@ -245,14 +315,16 @@ class SettingsService {
     const user = customSmtp.smtpUser || current.smtpUser;
     let pass = customSmtp.smtpPass;
 
-    if (!pass || pass === "••••••••") {
+    if (!pass || isMaskedSecret(pass)) {
       pass = current.smtpPass;
     }
 
     if (!host || !user || !pass) {
       return {
         success: false,
-        error: "Missing required SMTP credentials (Host, Username, or App Password)."
+        error: "Missing required SMTP credentials (Host, Username, or App Password).",
+        code: "MISSING_CREDENTIALS",
+        stage: "config"
       };
     }
 
@@ -265,20 +337,34 @@ class SettingsService {
           user,
           pass
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+        tls: {
+          rejectUnauthorized: false
+        }
       });
 
       await transporter.verify();
 
       return {
         success: true,
-        message: `Successfully connected and authenticated with ${host}:${port} as ${user}`
+        message: `Successfully connected and authenticated with ${host}:${port} as ${user}`,
+        code: "SMTP_READY",
+        stage: "ok"
       };
     } catch (err) {
+      const category = this.categorizeSmtpError(err);
+      logger.warn(`[SMTP Test] ${category.code} (${category.stage}) host=${host} port=${port} err=${category.message}`);
       return {
         success: false,
-        error: err.message || "Failed to authenticate with SMTP server. Check credentials."
+        error: category.message,
+        code: category.code,
+        stage: category.stage,
+        host,
+        port,
+        upstreamCode: err && err.code ? err.code : null,
+        upstreamResponse: err && err.responseCode ? err.responseCode : null
       };
     }
   }
