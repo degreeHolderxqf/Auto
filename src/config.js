@@ -2,28 +2,57 @@ const path = require("path");
 const fs = require("fs");
 const dotenv = require("dotenv");
 
-// Load .env if present
-const envPath = path.resolve(__dirname, "..", ".env");
-if (fs.existsSync(envPath)) {
-  dotenv.config({ path: envPath });
-} else {
-  dotenv.config();
+const isVercelRuntime = process.env.VERCEL === "1" || process.env.VERCEL === "true" || Boolean(process.env.VERCEL_ENV);
+
+// Do not load a local .env on Vercel. Local env files must never override the production runtime.
+if (!isVercelRuntime) {
+  const envPath = path.resolve(__dirname, "..", ".env");
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  } else {
+    dotenv.config();
+  }
 }
 
 const rootDir = path.resolve(__dirname, "..");
+const runtimeMode = isVercelRuntime ? "PRODUCTION" : "LOCAL";
+
+function getRateSetting(name, fallback) {
+  const parsed = Number.parseFloat(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 && parsed < 1 ? parsed : fallback;
+}
+
+const dataDir = isVercelRuntime
+  ? (process.env.DATA_DIR || "/tmp/data")
+  : (process.env.DATA_DIR || path.join(rootDir, "data"));
+const logsDir = isVercelRuntime
+  ? (process.env.LOGS_DIR || "/tmp/logs")
+  : (process.env.LOGS_DIR || path.join(rootDir, "logs"));
+const outputDir = isVercelRuntime
+  ? (process.env.OUTPUT_DIR || "/tmp/output")
+  : (process.env.OUTPUT_DIR || path.join(rootDir, "output"));
+const databasePath = isVercelRuntime
+  ? (process.env.DATABASE_PATH || "/tmp/data/leads.sqlite")
+  : (process.env.DATABASE_PATH || path.join(rootDir, "data", "leads.sqlite"));
+const exclusionsPath = isVercelRuntime
+  ? (process.env.EXCLUSIONS_PATH || "/tmp/data/excluded_companies.csv")
+  : (process.env.EXCLUSIONS_PATH || path.join(rootDir, "data", "excluded_companies.csv"));
+const resumePath = process.env.RESUME_PATH || path.join(rootDir, "26_Himanshu-Soni-Shopify.pdf");
 
 const config = {
   // Application
   env: process.env.NODE_ENV || "development",
+  runtimeMode,
   rootDir,
-  dataDir: path.resolve(rootDir, "data"),
-  logsDir: path.resolve(rootDir, process.env.LOGS_DIR || "logs"),
-  outputDir: path.resolve(rootDir, process.env.OUTPUT_DIR || "output"),
+  dataDir,
+  logsDir,
+  outputDir,
 
   // Database & Exclusions
-  databasePath: path.resolve(rootDir, process.env.DATABASE_PATH || "data/leads.sqlite"),
-  exclusionsPath: path.resolve(rootDir, process.env.EXCLUSIONS_PATH || "data/excluded_companies.csv"),
-  resumePath: path.resolve(rootDir, process.env.RESUME_PATH || "../../26_Himanshu-Soni-Shopify.pdf"),
+  databasePath,
+  exclusionsPath,
+  resumePath,
+  resumeFallbackPath: resumePath,
 
   // Lead Discovery & Targeting
   shopifyDirectoryUrl: process.env.SHOPIFY_PARTNER_DIRECTORY_URL || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=AVERAGE_RATING",
@@ -35,7 +64,7 @@ const config = {
   // Set MIN_EMPLOYEE_COUNT=30 for 30+ employees, or set 0 / false / disabled to make it optional
   minEmployeeCount: (() => {
     const raw = process.env.MIN_EMPLOYEE_COUNT !== undefined ? process.env.MIN_EMPLOYEE_COUNT : process.env.MIN_EMPLOYEES;
-    if (raw === undefined || raw === null || raw === "") return 30; // default 30
+    if (raw === undefined || raw === null || raw === "") return null; // default off unless explicitly enabled
     const str = String(raw).trim().toLowerCase();
     if (str === "false" || str === "null" || str === "0" || str === "none" || str === "disabled" || str === "off") return null;
     const parsed = parseInt(str, 10);
@@ -43,7 +72,7 @@ const config = {
   })(),
 
   // Search Provider
-  searchProvider: process.env.SEARCH_PROVIDER || "direct", // direct, duckduckgo, serpapi, google, bing
+  searchProvider: process.env.SEARCH_PROVIDER || "brave", // direct, brave, serpapi, google, bing
   searchApiKey: process.env.SEARCH_API_KEY || "",
 
   // Email & Sending
@@ -76,13 +105,36 @@ const config = {
   },
 
   // Web Crawling timeouts
-  httpTimeoutMs: parseInt(process.env.HTTP_TIMEOUT_MS || "12000", 10)
+  httpTimeoutMs: parseInt(process.env.HTTP_TIMEOUT_MS || "12000", 10),
+
+  // Revenue estimation is free/public-data-only by default. Set mode=paid explicitly
+  // before enabling an external traffic provider that may bill per request.
+  revenueEstimationMode: String(process.env.REVENUE_ESTIMATION_MODE || "free").trim().toLowerCase(),
+  trafficProvider: String(process.env.TRAFFIC_PROVIDER || "").trim().toLowerCase(),
+  dataForSeoLogin: process.env.DATAFORSEO_LOGIN || "",
+  dataForSeoPassword: process.env.DATAFORSEO_PASSWORD || "",
+  revenueBaseConversionRate: getRateSetting("REVENUE_BASE_CONVERSION_RATE", 0.015),
+  revenueLowConversionRate: getRateSetting("REVENUE_LOW_CONVERSION_RATE", 0.005),
+  revenueHighConversionRate: getRateSetting("REVENUE_HIGH_CONVERSION_RATE", 0.03),
+  revenueEstimateRefreshDays: Math.max(1, Math.min(parseInt(process.env.REVENUE_ESTIMATE_REFRESH_DAYS || "30", 10), 365)),
+  revenueFailureRetryHours: Math.max(1, Math.min(parseInt(process.env.REVENUE_FAILURE_RETRY_HOURS || "24", 10), 168)),
+
+  // Remote Job Discovery Settings (Additive Only)
+  // autoApplyDefault MUST default to OFF (human-in-the-loop for every submission)
+  remoteJobDiscoveryEnabled: process.env.REMOTE_JOB_DISCOVERY_ENABLED !== "false",
+  minRemoteJobRelevanceScore: parseInt(process.env.MIN_REMOTE_JOB_RELEVANCE_SCORE || "60", 10),
+  maxRemoteJobsPerSource: parseInt(process.env.MAX_REMOTE_JOBS_PER_SOURCE || "100", 10),
+  autoApplyDefault: process.env.AUTO_APPLY_DEFAULT === "true"
 };
 
-// Ensure required runtime directories exist
-[config.dataDir, config.logsDir, config.outputDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Ensure required runtime directories exist without crashing in serverless mode.
+[config.dataDir, config.logsDir, config.outputDir].forEach((dir) => {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (error) {
+    console.warn(`[CONFIG] Unable to create directory ${dir}:`, error.message);
   }
 });
 

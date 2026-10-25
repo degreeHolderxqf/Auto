@@ -14,5 +14,16 @@
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "crons": [
+    {
+      "path": "/api/email/batch/worker",
+      "schedule": "* * * * *"
+    }
+  ],
+  "functions": {
+    "src/server.cjs": {
+      "maxDuration": 300
+    }
   }
 }

@@ -6,26 +6,35 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "start": "node newest.js",
+    "start": "node index.js",
+    "start:workflow": "node newest.js",
     "discover": "node src/cli.js discover",
     "research": "node src/cli.js research",
     "leads": "node src/cli.js leads",
     "export": "node src/cli.js export",
+    "freelance-leads": "node src/cli.js freelance-leads",
+    "bulk-enrich": "node src/cli.js bulk-enrich",
+    "import-tranco": "node src/cli.js import-tranco",
     "preview": "node src/cli.js preview",
     "send": "node src/cli.js send",
     "status": "node src/cli.js status",
     "exclude": "node src/cli.js exclude"
   },
   "dependencies": {
+    "@vercel/blob": "^2.8.0",
+    "axios": "^1.20.0",
+    "cheerio": "^1.2.0",
     "csv-parser": "^3.2.0",
     "csv-writer": "^1.6.0",
     "dotenv": "^16.4.7",
     "jsdom": "^28.1.0",
     "libphonenumber-js": "^1.13.11",
     "nodemailer": "^6.9.2",
+    "p-limit": "^3.1.0",
     "pdfjs-dist": "^5.4.530",
     "puppeteer": "^24.34.0",
     "qrcode": "^1.5.4",
+    "rss-parser": "^3.13.0",
     "xlsx": "^0.18.5"
   }
 }

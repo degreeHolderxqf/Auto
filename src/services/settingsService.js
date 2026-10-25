@@ -22,56 +22,78 @@ class SettingsService {
   }
 
   /**
-   * Returns default system settings initialized from .env / config
+   * Private values should never be auto-filled from a previous secret unless the
+   * user explicitly sets them again. Public/default values are safe to show.
+   */
+  normalizePrivateField(value, fallback = "") {
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed || trimmed === "" || isMaskedSecret(trimmed)) return fallback;
+      return trimmed;
+    }
+    return value;
+  }
+
+  /**
+   * Returns default system settings initialized from .env / config.
+   *
+   * IMPORTANT: User-specific fields (name, email, SMTP credentials, company info,
+   * API keys) must NOT be pre-filled with personal data. They remain empty
+   * until the user explicitly enters them. The .env file is for the developer
+   * running the app locally; production multi-user deployments must seed from
+   * each user's authenticated record, not from env vars.
    */
   getDefaults() {
     return {
-      // 1. Candidate / User Profile
-      candidateName: process.env.CANDIDATE_NAME || "Himanshu Soni",
-      candidateRole: process.env.CANDIDATE_ROLE || "Shopify Developer",
-      candidateExperience: process.env.CANDIDATE_EXPERIENCE || "3 years",
-      candidateEmail: process.env.CANDIDATE_EMAIL || config.smtp.user || "himanshusoni7899@gmail.com",
+      // 1. Candidate / User Profile — all user-specific, default to empty
+      candidateName: process.env.CANDIDATE_NAME || "",
+      candidateRole: process.env.CANDIDATE_ROLE || "",
+      candidateExperience: process.env.CANDIDATE_EXPERIENCE || "",
+      candidateEmail: process.env.CANDIDATE_EMAIL || "",
       candidatePhone: process.env.CANDIDATE_PHONE || "",
-      candidateSkills: [
-        "Shopify & Shopify Plus Theme Development (Liquid, Theme App Extensions, Section Rendering)",
-        "Custom App & Full-Stack Development (Node.js, Remix, React, JavaScript)",
-        "Shopify Admin & Storefront GraphQL / REST APIs, Webhooks, and Systems Integrations",
-        "Checkout Extensibility, Functions, and Headless Commerce setups"
-      ],
-      resumeFilename: "Himanshu-Soni-Shopify-Developer-Resume.pdf",
+      candidateSkills: [],
+      resumeFilename: process.env.CANDIDATE_NAME ? `${process.env.CANDIDATE_NAME.replace(/\s+/g, "-")}-Resume.pdf` : "",
       resumePath: config.resumePath,
 
-      // 2. SMTP Server Configuration
-      smtpHost: config.smtp.host || "smtp.gmail.com",
-      smtpPort: config.smtp.port || 587,
-      smtpSecure: config.smtp.secure || false,
-      smtpUser: config.smtp.user || "himanshusoni7899@gmail.com",
-      smtpPass: config.smtp.pass || "",
-      emailFrom: config.smtp.from || "Himanshu Soni <himanshusoni7899@gmail.com>",
+      // 2. SMTP Server Configuration — user-specific, default to empty
+      smtpHost: process.env.SMTP_HOST || "",
+      smtpPort: parseInt(process.env.SMTP_PORT || "587", 10),
+      smtpSecure: process.env.SMTP_SECURE === "true",
+      smtpUser: process.env.SMTP_USER || "",
+      smtpPass: "",
+      emailFrom: process.env.EMAIL_FROM || "",
 
-      // 3. Lead Discovery & Targeting
-      shopifyDirectoryUrl: config.shopifyDirectoryUrl || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=AVERAGE_RATING",
-      targetCountry: config.targetCountry || "India",
-      targetLeads: config.targetLeads || 100,
-      minAppRelevanceScore: config.minAppRelevanceScore || 70,
+      // 3. Lead Discovery & Targeting — global defaults, safe to pre-fill
+      shopifyDirectoryUrl: process.env.SHOPIFY_PARTNER_DIRECTORY_URL || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=AVERAGE_RATING",
+      targetCountry: process.env.TARGET_COUNTRY || "India",
+      targetLeads: parseInt(process.env.TARGET_LEADS || "100", 10),
+      minAppRelevanceScore: parseInt(process.env.MIN_APP_RELEVANCE_SCORE || "70", 10),
 
       // 4. Employee Size Verification (Optional)
-      minEmployeeCount: config.minEmployeeCount !== undefined ? config.minEmployeeCount : 30,
+      minEmployeeCount: config.minEmployeeCount !== undefined ? config.minEmployeeCount : null,
 
-      // 5. Safety & Sending Controls
+      // 5. Safety & Sending Controls — global defaults
       dryRun: config.dryRun !== undefined ? config.dryRun : true,
-      sendLimit: config.sendLimit || 50,
-      emailDelayMs: config.emailDelayMs || 5000,
-      batchSize: config.batchSize || 10,
-      batchDelayMs: config.batchDelayMs || 60000,
+      sendLimit: parseInt(process.env.SEND_LIMIT || "50", 10),
+      emailDelayMs: parseInt(process.env.EMAIL_DELAY_MS || "5000", 10),
+      batchSize: parseInt(process.env.BATCH_SIZE || "10", 10),
+      batchDelayMs: parseInt(process.env.BATCH_DELAY_MS || "60000", 10),
 
-      // 6. Evolution API WhatsApp Settings
-      evolutionApiUrl: config.evolution.apiUrl || "https://evolution-api-latest-h0yy.onrender.com",
-      evolutionApiKey: config.evolution.apiKey || "",
-      evolutionInstanceName: config.evolution.instanceName || "job-search",
+      // 6. Evolution API WhatsApp Settings — user-specific, default to empty
+      evolutionApiUrl: process.env.EVOLUTION_API_URL || "",
+      evolutionApiKey: "",
+      evolutionInstanceName: process.env.EVOLUTION_INSTANCE_NAME || "",
       whatsAppEnabled: config.evolution.enabled !== undefined ? config.evolution.enabled : true,
       whatsAppDryRun: config.evolution.dryRun !== undefined ? config.evolution.dryRun : true,
-      whatsAppDelayMs: config.evolution.delayMs || 15000
+      whatsAppDelayMs: parseInt(process.env.WHATSAPP_DELAY_MS || "15000", 10),
+
+      // 7. Remote Job Discovery Settings (Additive Only) — global defaults, safe to pre-fill
+      // autoApplyDefault MUST default to OFF (human-in-the-loop for every submission)
+      remoteJobDiscoveryEnabled: config.remoteJobDiscoveryEnabled !== undefined ? config.remoteJobDiscoveryEnabled : false,
+      minRemoteJobRelevanceScore: config.minRemoteJobRelevanceScore !== undefined ? config.minRemoteJobRelevanceScore : 60,
+      maxRemoteJobsPerSource: config.maxRemoteJobsPerSource !== undefined ? config.maxRemoteJobsPerSource : 100,
+      autoApplyDefault: config.autoApplyDefault !== undefined ? config.autoApplyDefault : false
     };
   }
 
@@ -99,9 +121,24 @@ class SettingsService {
       ...dbOverrides
     };
 
+    // Legacy migration: previously the system defaulted employee verification to 30.
+    // Keep the feature off unless the user explicitly enables it again.
+    if ((merged.minEmployeeCount === 30 || merged.minEmployeeCount === "30") && process.env.MIN_EMPLOYEE_COUNT === undefined && process.env.MIN_EMPLOYEES === undefined) {
+      merged.minEmployeeCount = null;
+      try {
+        db.saveSetting("minEmployeeCount", null);
+      } catch {
+        // DB may not be ready yet; ignore and keep runtime off
+      }
+    }
+
     // If evolutionApiKey was stored as empty string in DB, fallback to .env/defaults
+    // Do not auto-load private secrets into the global/public defaults. Keep them blank
+    // unless the user intentionally saves a secret for the active environment.
+    merged.smtpPass = this.normalizePrivateField(merged.smtpPass, "");
+    merged.evolutionApiKey = this.normalizePrivateField(merged.evolutionApiKey, "");
     if (!merged.evolutionApiKey && defaults.evolutionApiKey) {
-      merged.evolutionApiKey = defaults.evolutionApiKey;
+      merged.evolutionApiKey = "";
     }
 
     // Ensure candidateSkills is an array
@@ -156,11 +193,16 @@ class SettingsService {
     const current = this.getSettings(false);
     const updated = { ...current, ...newSettings };
 
-    // Prevent overwriting actual passwords with masked placeholder
-    if (isMaskedSecret(newSettings.smtpPass) || newSettings.smtpPass === undefined || newSettings.smtpPass === "") {
+    // Prevent blank / masked secrets from wiping previously saved credentials.
+    // Public defaults remain visible; private keys stay blank until a user explicitly stores them.
+    if (isMaskedSecret(newSettings.smtpPass) || newSettings.smtpPass === undefined) {
+      updated.smtpPass = current.smtpPass;
+    } else if (newSettings.smtpPass === "") {
       updated.smtpPass = current.smtpPass;
     }
-    if (isMaskedSecret(newSettings.evolutionApiKey) || newSettings.evolutionApiKey === undefined || newSettings.evolutionApiKey === "") {
+    if (isMaskedSecret(newSettings.evolutionApiKey) || newSettings.evolutionApiKey === undefined) {
+      updated.evolutionApiKey = current.evolutionApiKey;
+    } else if (newSettings.evolutionApiKey === "") {
       updated.evolutionApiKey = current.evolutionApiKey;
     }
 
@@ -181,6 +223,12 @@ class SettingsService {
     if (updated.whatsAppEnabled !== undefined) updated.whatsAppEnabled = Boolean(updated.whatsAppEnabled);
     if (updated.whatsAppDryRun !== undefined) updated.whatsAppDryRun = Boolean(updated.whatsAppDryRun);
     if (updated.whatsAppDelayMs) updated.whatsAppDelayMs = parseInt(updated.whatsAppDelayMs, 10);
+
+    // Remote Job Discovery Settings (additive)
+    if (updated.remoteJobDiscoveryEnabled !== undefined) updated.remoteJobDiscoveryEnabled = Boolean(updated.remoteJobDiscoveryEnabled);
+    if (updated.autoApplyDefault !== undefined) updated.autoApplyDefault = Boolean(updated.autoApplyDefault);
+    if (updated.minRemoteJobRelevanceScore !== undefined) updated.minRemoteJobRelevanceScore = parseInt(updated.minRemoteJobRelevanceScore, 10);
+    if (updated.maxRemoteJobsPerSource !== undefined) updated.maxRemoteJobsPerSource = parseInt(updated.maxRemoteJobsPerSource, 10);
 
     if (updated.minEmployeeCount === 0 || String(updated.minEmployeeCount).toLowerCase() === "false" || updated.minEmployeeCount === "" || updated.minEmployeeCount === null) {
       updated.minEmployeeCount = null;
@@ -229,9 +277,7 @@ class SettingsService {
     config.evolution.dryRun = settings.whatsAppDryRun !== undefined ? settings.whatsAppDryRun : true;
     config.evolution.delayMs = settings.whatsAppDelayMs || 15000;
 
-    if (settings.resumePath) {
-      config.resumePath = settings.resumePath;
-    }
+    config.resumePath = settings.resumePath || config.resumeFallbackPath;
   }
 
   /**

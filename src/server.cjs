@@ -23,6 +23,7 @@ if (!process.env.VERCEL) {
 const path = require("node:path");
 const os = require("node:os");
 const fs = require("node:fs");
+const resumeStorage = require("./services/resumeStorage");
 
 // On Vercel, the only writable directory is /tmp. Route the SQLite database there.
 const IS_VERCEL = process.env.VERCEL === "1";
@@ -56,6 +57,14 @@ try {
   loadError = err;
   console.error("[SERVERLESS] Failed to load modules:", err.message, err.stack);
 }
+let formatRevenueValue = () => null;
+let estimateStoreRevenue = null;
+let convertRevenueToStoreCurrency = (estimate) => estimate;
+try {
+  ({ formatRevenueValue, estimateStoreRevenue, convertRevenueToStoreCurrency } = require("./services/revenueEstimator"));
+} catch (err) {
+  console.warn("[SERVERLESS] Revenue display helper unavailable:", err.message);
+}
 
 // Safe logger wrapper that never throws
 const safeLogger = {
@@ -75,42 +84,47 @@ let memorySettings = null;
 function getEnvSettings() {
   if (memorySettings) return memorySettings;
   memorySettings = {
-    candidateName: process.env.CANDIDATE_NAME || "Himanshu Soni",
-    candidateRole: process.env.CANDIDATE_ROLE || "Shopify Developer",
-    candidateExperience: process.env.CANDIDATE_EXPERIENCE || "3 years",
-    candidateEmail: process.env.CANDIDATE_EMAIL || process.env.SMTP_USER || "himanshusoni7899@gmail.com",
+    // User-specific fields — default to empty so new users see blank forms.
+    // The .env file is for the developer running the app locally; do not seed
+    // production multi-user deployments with hardcoded personal data.
+    candidateName: process.env.CANDIDATE_NAME || "",
+    candidateRole: process.env.CANDIDATE_ROLE || "",
+    candidateExperience: process.env.CANDIDATE_EXPERIENCE || "",
+    candidateEmail: process.env.CANDIDATE_EMAIL || "",
     candidatePhone: process.env.CANDIDATE_PHONE || "",
-    candidateSkills: [
-      "Shopify & Shopify Plus Theme Development (Liquid, Theme App Extensions, Section Rendering)",
-      "Custom App & Full-Stack Development (Node.js, Remix, React, JavaScript)",
-      "Shopify Admin & Storefront GraphQL / REST APIs, Webhooks, and Systems Integrations",
-      "Checkout Extensibility, Functions, and Headless Commerce setups"
-    ],
-    resumeFilename: "Himanshu-Soni-Shopify-Developer-Resume.pdf",
-    resumePath: process.env.RESUME_PATH || "26_Himanshu-Soni-Shopify.pdf",
+    candidateSkills: [],
+    resumeFilename: process.env.CANDIDATE_NAME ? `${process.env.CANDIDATE_NAME.replace(/\s+/g, "-")}-Resume.pdf` : "",
+    resumePath: process.env.RESUME_PATH || "",
 
-    smtpHost: process.env.SMTP_HOST || "smtp.gmail.com",
+    smtpHost: process.env.SMTP_HOST || "",
     smtpPort: parseInt(process.env.SMTP_PORT || "587", 10),
     smtpSecure: process.env.SMTP_SECURE === "true",
-    smtpUser: process.env.SMTP_USER || "himanshusoni7899@gmail.com",
+    smtpUser: process.env.SMTP_USER || "",
     smtpPass: process.env.SMTP_PASS || "",
-    emailFrom: process.env.EMAIL_FROM || "Himanshu Soni <himanshusoni7899@gmail.com>",
+    emailFrom: process.env.EMAIL_FROM || "",
 
     shopifyDirectoryUrl: process.env.SHOPIFY_PARTNER_DIRECTORY_URL || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=DEFAULT",
     targetCountry: process.env.TARGET_COUNTRY || "India",
     targetLeads: parseInt(process.env.TARGET_LEADS || "100", 10),
     minAppRelevanceScore: parseInt(process.env.MIN_APP_RELEVANCE_SCORE || "70", 10),
-    minEmployeeCount: parseInt(process.env.MIN_EMPLOYEE_COUNT || "30", 10),
+    minEmployeeCount: (() => {
+      const raw = process.env.MIN_EMPLOYEE_COUNT;
+      if (raw === undefined || raw === null || raw === "") return null;
+      const str = String(raw).trim().toLowerCase();
+      if (["false", "null", "0", "none", "disabled", "off"].includes(str)) return null;
+      const parsed = parseInt(str, 10);
+      return Number.isNaN(parsed) || parsed <= 0 ? null : parsed;
+    })(),
 
     dryRun: process.env.DRY_RUN !== "false" && process.env.DRY_RUN !== "0",
     sendLimit: parseInt(process.env.SEND_LIMIT || "50", 10),
     emailDelayMs: parseInt(process.env.EMAIL_DELAY_MS || "5000", 10),
-    batchSize: parseInt(process.env.BATCH_SIZE || "50", 10),
+    batchSize: parseInt(process.env.BATCH_SIZE || "10", 10),
     batchDelayMs: parseInt(process.env.BATCH_DELAY_MS || "60000", 10),
 
-    evolutionApiUrl: (process.env.EVOLUTION_API_URL || "https://evolution-api-latest-h0yy.onrender.com").replace(/\/+$/, ""),
+    evolutionApiUrl: process.env.EVOLUTION_API_URL || "",
     evolutionApiKey: process.env.EVOLUTION_API_KEY || "",
-    evolutionInstanceName: process.env.EVOLUTION_INSTANCE_NAME || "job-search",
+    evolutionInstanceName: process.env.EVOLUTION_INSTANCE_NAME || "",
     whatsAppEnabled: process.env.WHATSAPP_ENABLED !== "false" && process.env.WHATSAPP_ENABLED !== "0",
     whatsAppDryRun: process.env.WHATSAPP_DRY_RUN !== "false" && process.env.WHATSAPP_DRY_RUN !== "0",
     whatsAppDelayMs: parseInt(process.env.WHATSAPP_DELAY_MS || "15000", 10)
@@ -135,7 +149,7 @@ function parseBody(req) {
     let body = "";
     req.on("data", (chunk) => {
       body += chunk.toString();
-      if (body.length > 5 * 1024 * 1024) reject(new Error("Request body too large"));
+      if (body.length > 15 * 1024 * 1024) reject(new Error("Request body too large"));
     });
     req.on("end", () => {
       if (!body) return resolve({});
@@ -143,6 +157,19 @@ function parseBody(req) {
     });
     req.on("error", reject);
   });
+}
+
+function normalizeErrorValue(value) {
+  if (value === null || value === undefined) return "Unknown error";
+  if (typeof value === "string") return value.trim() || "Unknown error";
+  if (Array.isArray(value)) return value.map((entry) => normalizeErrorValue(entry)).filter(Boolean).join(", ");
+  if (typeof value === "object") {
+    if (typeof value.message === "string" || value.message !== undefined) return normalizeErrorValue(value.message);
+    if (typeof value.error === "string" || value.error !== undefined) return normalizeErrorValue(value.error);
+    if (typeof value.details === "string" || value.details !== undefined) return normalizeErrorValue(value.details);
+    try { return JSON.stringify(value); } catch { return String(value); }
+  }
+  return String(value);
 }
 
 function sendJson(res, statusCode, data) {
@@ -156,7 +183,11 @@ function sendJson(res, statusCode, data) {
 
 function sendError(res, statusCode, message, details) {
   if (details === undefined) details = null;
-  sendJson(res, statusCode, { success: false, error: message, details });
+  sendJson(res, statusCode, {
+    success: false,
+    error: normalizeErrorValue(message),
+    details: details === null ? null : normalizeErrorValue(details)
+  });
 }
 
 function getEvolutionHttpStatus(errorCode, upstreamStatus) {
@@ -274,6 +305,9 @@ function getStatisticsFallback() {
 
 function getCompaniesFallback() {
   try {
+    if (db && typeof db.getAllCompaniesWithRevenue === "function") {
+      return db.getAllCompaniesWithRevenue();
+    }
     if (db && typeof db.getAllCompanies === "function") {
       return db.getAllCompanies();
     }
@@ -312,6 +346,9 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const templateRoutes = require("./api/emailTemplateRoutes");
+    if (await templateRoutes.handleEmailTemplateRoute(req, res, pathname, { parseBody, sendJson, sendError })) return;
+
     // 1. Health (always works)
     if (pathname === "/health" || pathname === "/api/health") {
       const settings = getSettings();
@@ -333,16 +370,78 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // 2a. Dashboard metric records
+    if (pathname === "/api/dashboard/records" && method === "GET") {
+      const metric = url.searchParams.get("metric") || "";
+      const validMetrics = new Set([
+        "discovered",
+        "merchantContacts",
+        "employeeVerified",
+        "emailContacts",
+        "readyToSend",
+        "emailsSent",
+        "excludedTooLow"
+      ]);
+      if (!validMetrics.has(metric)) {
+        sendError(res, 400, "A valid dashboard metric is required");
+        return;
+      }
+      if (!db) {
+        sendError(res, 503, "Dashboard records are unavailable without the database", "DB module not loaded");
+        return;
+      }
+      try {
+        let records = db.getDashboardMetricRecords(metric);
+        const merchantLeads = require("./services/merchantIngestion").getMerchantLeads({ limit: 10000 });
+        const merchantById = new Map(merchantLeads.map((lead) => [lead.id, lead]));
+        records = records.map((record) => {
+          const merchant = merchantById.get(record.id);
+          if (!merchant) return record;
+          return {
+            ...record,
+            email: record.email || merchant.contact_email || null,
+            contact_email: merchant.contact_email || null,
+            phone: record.phone || merchant.phone || null,
+            normalized_phone: record.normalized_phone || merchant.normalized_phone || null,
+            installed_apps: record.installed_apps || merchant.installed_apps,
+            tech_stack: record.tech_stack || merchant.tech_stack,
+            store_description: record.store_description || merchant.store_description,
+            product_count: record.product_count ?? merchant.product_count,
+            estimated_revenue: record.estimated_revenue || merchant.estimated_revenue
+          };
+        });
+        sendJson(res, 200, { success: true, metric, count: records.length, records });
+      } catch (e) {
+        safeLogger.error("Failed to load dashboard metric records", e);
+        sendError(res, 500, "Failed to load dashboard metric records", e.message);
+      }
+      return;
+    }
+
     // 3. Leads list (uses DB with fallback)
     if (pathname === "/api/leads" && method === "GET") {
       const limitParam = url.searchParams.get("limit");
       const limit = limitParam && limitParam !== "all" ? parseInt(limitParam, 10) : null;
       const statusFilter = url.searchParams.get("status");
+      const sourceFilter = url.searchParams.get("source");
       const minScore = parseInt(url.searchParams.get("minScore") || "0", 10);
       const searchQuery = (url.searchParams.get("search") || "").trim().toLowerCase();
 
-      let leads = getLeadsFallback(limit);
+      let leads = [];
+      if (db && typeof db.getAllCompaniesWithRevenue === "function") {
+        leads = db.getAllCompaniesWithRevenue({
+          status: statusFilter && statusFilter !== "ALL" ? statusFilter : undefined,
+          source: sourceFilter && sourceFilter !== "ALL" ? sourceFilter : undefined,
+          limit: limit
+        });
+      } else {
+        leads = getLeadsFallback(limit);
+      }
+      leads = leads.map(convertRevenueToStoreCurrency);
+
+      // Apply filters on the enriched data
       if (statusFilter && statusFilter !== "ALL") leads = leads.filter((l) => l.status === statusFilter);
+      if (sourceFilter && sourceFilter !== "ALL") leads = leads.filter((l) => l.source === sourceFilter);
       if (minScore > 0) leads = leads.filter((l) => (l.lead_score || 0) >= minScore);
       if (searchQuery) leads = leads.filter((l) =>
         (l.name && l.name.toLowerCase().includes(searchQuery)) ||
@@ -379,9 +478,61 @@ module.exports = async function handler(req, res) {
     // 5. Companies
     if (pathname === "/api/companies" && method === "GET") {
       const status = url.searchParams.get("status") || undefined;
-      let companies = getCompaniesFallback();
+      let companies = getCompaniesFallback().map(convertRevenueToStoreCurrency).map((company) => {
+        const calculatedRevenue = company.estimated_monthly_revenue !== null && company.estimated_monthly_revenue !== undefined
+          ? formatRevenueValue(company.estimated_monthly_revenue, company.revenue_currency)
+          : null;
+        return {
+          ...company,
+          estimated_revenue: calculatedRevenue || company.estimated_revenue || null
+        };
+      });
       if (status) companies = companies.filter((c) => c.status === status);
       sendJson(res, 200, { success: true, count: companies.length, companies });
+      return;
+    }
+
+    const revenueRefreshMatch = pathname.match(/^\/api\/companies\/(\d+)\/revenue-estimate$/);
+    if (revenueRefreshMatch && method === "POST") {
+      if (!db) {
+        sendError(res, 503, "Database unavailable in serverless mode", "DB module not loaded");
+        return;
+      }
+      try {
+        const companyId = Number.parseInt(revenueRefreshMatch[1], 10);
+        const company = db.getCompanyById(companyId);
+        if (!company) { sendError(res, 404, "Company not found"); return; }
+        const merchantIngestion = require("./services/merchantIngestion");
+        const merchant = merchantIngestion.getMerchantLeadById(companyId);
+        if (!merchant) {
+          sendError(res, 400, "Revenue refresh is available for merchant storefront records");
+          return;
+        }
+        const domain = company.domain || merchant.domain;
+        const estimate = await estimateStoreRevenue(domain);
+        const saved = db.upsertMerchantRevenueEstimate({ ...estimate, company_id: companyId, domain });
+        const displayEstimate = convertRevenueToStoreCurrency({
+          ...saved,
+          revenue_currency: saved.currency,
+          estimated_aov: saved.aov,
+          product_price_proxy: saved.product_price_proxy,
+          product_price_min: saved.product_price_min,
+          product_price_max: saved.product_price_max,
+          product_price_p25: saved.product_price_p25,
+          product_price_p75: saved.product_price_p75
+        });
+        sendJson(res, 200, {
+          success: true,
+          estimate: {
+            ...displayEstimate,
+            estimated_revenue: displayEstimate.estimated_monthly_revenue !== null && displayEstimate.estimated_monthly_revenue !== undefined
+              ? formatRevenueValue(displayEstimate.estimated_monthly_revenue, displayEstimate.revenue_currency)
+              : merchant.estimated_revenue || null
+          }
+        });
+      } catch (error) {
+        sendError(res, 500, "Revenue refresh failed", error.message);
+      }
       return;
     }
 
@@ -446,6 +597,86 @@ module.exports = async function handler(req, res) {
         sendJson(res, 200, { success: true, message: "Settings successfully updated", settings: updated });
       } catch (e) {
         sendError(res, 500, "Failed to update settings", e.message);
+      }
+      return;
+    }
+
+    // Upload resume PDF (base64-encoded in JSON body)
+    if (pathname === "/api/upload-resume" && method === "POST") {
+      try {
+        const body = await parseBody(req);
+        const { file, filename } = body;
+
+        if (!file || !filename) {
+          sendError(res, 400, "No file or filename provided");
+          return;
+        }
+
+        if (!filename.toLowerCase().endsWith(".pdf")) {
+          sendError(res, 400, "Only PDF files are supported");
+          return;
+        }
+
+        const MAX_SIZE_MB = 10;
+        const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+        let buffer;
+        try {
+          buffer = Buffer.from(file, "base64");
+        } catch {
+          sendError(res, 400, "Invalid base64 file data");
+          return;
+        }
+
+        if (buffer.length === 0) {
+          sendError(res, 400, "File is empty");
+          return;
+        }
+
+        if (buffer.length > MAX_SIZE_BYTES) {
+          sendError(res, 400, `File size exceeds ${MAX_SIZE_MB}MB limit`);
+          return;
+        }
+
+        // Validate PDF magic bytes
+        const header = buffer.slice(0, 4).toString("ascii");
+        if (header !== "%PDF") {
+          sendError(res, 400, "File is not a valid PDF");
+          return;
+        }
+
+        try {
+          const stored = await resumeStorage.saveResume(filename, buffer);
+
+          const settingsService = require("./services/settingsService");
+          const updated = settingsService.updateSettings({
+            resumePath: stored.reference,
+            resumeFilename: stored.filename
+          });
+
+          sendJson(res, 200, { success: true, message: "Resume uploaded successfully", settings: updated });
+        } catch (fsError) {
+          sendError(res, 500, `Failed to save resume file: ${fsError.message}`, fsError.message);
+        }
+      } catch (e) {
+        sendError(res, 500, "Failed to upload resume", e.message);
+      }
+      return;
+    }
+
+    // Remove resume (revert to env fallback)
+    if (pathname === "/api/remove-resume" && method === "POST") {
+      try {
+        const settingsService = require("./services/settingsService");
+        const current = settingsService.getSettings(false);
+        await resumeStorage.removeResume(current.resumePath);
+        const updated = settingsService.updateSettings({
+          resumePath: "",
+          resumeFilename: ""
+        });
+        sendJson(res, 200, { success: true, message: "Resume removed", settings: updated });
+      } catch (e) {
+        sendError(res, 500, "Failed to remove resume", e.message);
       }
       return;
     }
@@ -618,7 +849,7 @@ module.exports = async function handler(req, res) {
         const contacts = db.getContactsByCompanyId(companyId);
         const bestContact = contacts.length > 0 ? contacts[0] : null;
         const whatsappGenerator = require("./services/whatsappGenerator");
-        const preview = whatsappGenerator.generateMessage(company, bestContact);
+        const preview = await whatsappGenerator.generateActiveMessage(company, bestContact);
         sendJson(res, 200, { success: true, preview });
       } catch (e) {
         sendError(res, 500, "Preview failed", e.message);
@@ -636,7 +867,9 @@ module.exports = async function handler(req, res) {
         const body = await parseBody(req);
         if (!body.leadId && !body.companyId) { sendError(res, 400, "leadId or companyId is required"); return; }
         const targetId = body.leadId || body.companyId;
-        const result = await whatsappWorkflow.sendSingleMessage(targetId, body.phone || null, body.message || null);
+        const result = await whatsappWorkflow.sendSingleMessage(targetId, body.phone || null, body.message || null, {
+          templateId: body.templateId
+        });
         sendJson(res, result.success ? 200 : 400, result);
       } catch (e) {
         sendError(res, 500, "WhatsApp send failed", e.message);
@@ -653,7 +886,9 @@ module.exports = async function handler(req, res) {
         const whatsappWorkflow = require("./workflows/whatsappWorkflow");
         const body = await parseBody(req);
         if (!body.leadIds || !Array.isArray(body.leadIds)) { sendError(res, 400, "leadIds array is required"); return; }
-        const results = await whatsappWorkflow.sendBatch(body.leadIds);
+        const results = await whatsappWorkflow.sendBatch(body.leadIds, null, {
+          templateId: body.templateId
+        });
         sendJson(res, 200, { success: true, results });
       } catch (e) {
         sendError(res, 500, "Batch send failed", e.message);
@@ -667,12 +902,239 @@ module.exports = async function handler(req, res) {
         return;
       }
       try {
-        const limit = parseInt(url.searchParams.get("limit") || "100", 10);
-        const logs = db.getWhatsAppLogs(limit);
+        const logs = db.getAllWhatsAppLogs();
         sendJson(res, 200, { success: true, count: logs.length, logs });
       } catch (e) {
         sendError(res, 500, "Logs fetch failed", e.message);
       }
+      return;
+    }
+
+    // ── Email Batch Endpoints (Resumable) ─────────────────────────────────────
+    if (pathname.startsWith("/api/email/preview/") && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const companyId = parseInt(pathname.replace("/api/email/preview/", ""), 10);
+      if (Number.isNaN(companyId)) { sendError(res, 400, "Invalid company ID"); return; }
+      const company = db.getCompanyById(companyId);
+      if (!company) { sendError(res, 404, "Company not found"); return; }
+      const contacts = db.getContactsByCompanyId(companyId);
+      const bestContact = contacts.length ? contacts[0] : null;
+      const emailTemplates = require("./services/emailTemplates");
+      const outreachEmailGenerator = require("./services/outreachEmailGenerator");
+      const templateId = url.searchParams.get("templateId") || await emailTemplates.getActiveTemplateId();
+      const selectedTemplate = (await emailTemplates.getTemplates()).find((item) => item.id === templateId);
+      const emailData = await outreachEmailGenerator.generateEmail(company, bestContact, { templateId });
+      sendJson(res, 200, {
+        success: true,
+        preview: {
+          to: bestContact ? bestContact.email : "[No Public Email Found]",
+          recipientName: bestContact && bestContact.name ? bestContact.name : `${company.name} Hiring Team`,
+          companyName: company.name,
+          templateId,
+          templateTarget: selectedTemplate ? selectedTemplate.target : templateId,
+          subject: emailData.subject,
+          text: emailData.text,
+          html: emailData.html,
+          resumeAttachment: emailData.attachments?.[0]?.filename || null,
+          confidence: bestContact ? bestContact.confidence : "NONE",
+          emailType: bestContact ? bestContact.email_type : "N/A"
+        }
+      });
+      return;
+    }
+
+    // POST /api/email/send — create a resumable batch and start processing
+    if (pathname === "/api/email/send" && method === "POST") {
+      if (!db) {
+        sendError(res, 503, "Database unavailable in serverless mode", "DB module not loaded");
+        return;
+      }
+      try {
+        const emailSender = require("./services/emailSender");
+        const outreachEmailGenerator = require("./services/outreachEmailGenerator");
+        const emailTemplates = require("./services/emailTemplates");
+        const body = await parseBody(req);
+        const limit = body.limit !== undefined ? (body.limit === "all" ? null : parseInt(body.limit, 10)) : null;
+        const dryRun = body.dryRun !== undefined ? body.dryRun : getSettings().dryRun;
+        const leadIds = Array.isArray(body.leadIds) ? body.leadIds.map(Number) : null;
+        const templateId = body.templateId || await emailTemplates.getActiveTemplateId();
+
+        let eligibleLeads = db.getFinalQualifiedLeads(limit ? limit * 3 : null).filter(
+          (l) => l.email && ["HIGH", "MEDIUM"].includes(l.email_confidence) && !db.hasBeenContacted(l.email, l.id)
+        );
+        if (leadIds && leadIds.length > 0) {
+          eligibleLeads = eligibleLeads.filter((l) => leadIds.includes(l.id));
+        }
+        if (eligibleLeads.length === 0) {
+          sendError(res, 400, "No eligible uncontacted leads found to send.");
+          return;
+        }
+
+        const selectedLeads = limit ? eligibleLeads.slice(0, limit) : eligibleLeads;
+        const batchItems = await Promise.all(selectedLeads.map(async (l) => {
+          const contact = {
+            id: l.contact_id, name: l.contact_name, role: l.contact_role,
+            email: l.email, email_type: l.email_type, confidence: l.email_confidence
+          };
+          return {
+            company: l,
+            contact,
+            mailOptions: await outreachEmailGenerator.generateEmail(l, contact, { templateId })
+          };
+        }));
+
+        // Pre-validate SMTP before accepting the batch.
+        if (!dryRun) {
+          const smtpTest = await testSmtpConnectionDirect({});
+          if (!smtpTest.success) {
+            sendError(res, 400, `SMTP is not configured or credentials are invalid: ${smtpTest.error}`);
+            return;
+          }
+        }
+
+        const batchId = emailSender.createBatch(batchItems, { dryRun });
+
+        // Process as much as possible within the Vercel function budget.
+        // Progress is checkpointed after every email.
+        try {
+          await emailSender.processBatchChunk(batchId, { verify: true });
+        } catch (err) {
+          safeLogger.error(`Batch ${batchId} first chunk failed:`, err);
+          try { db.failEmailBatch(batchId, err.message); } catch (_) { /* ignore */ }
+          sendError(res, 500, `Batch failed: ${err.message}`);
+          return;
+        }
+
+        const finalBatch = db.getEmailBatch(batchId);
+        sendJson(res, 200, {
+          success: true,
+          message: dryRun ? "Dry-run batch completed" : "Live batch outreach started",
+          templateId,
+          batchId,
+          status: finalBatch ? finalBatch.status : "PROCESSING",
+          results: {
+            total: batchItems.length,
+            sent: finalBatch ? finalBatch.sent : 0,
+            failed: finalBatch ? finalBatch.failed : 0,
+            pending: finalBatch ? finalBatch.pending : batchItems.length,
+            dryRun
+          }
+        });
+      } catch (e) {
+        sendError(res, 500, "Failed to process batch", e.message);
+      }
+      return;
+    }
+
+    // GET /api/email/batch/:id — get batch status
+    if (pathname.match(/^\/api\/email\/batch\/([^/]+)$/) && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const batchId = pathname.match(/^\/api\/email\/batch\/([^/]+)$/)[1];
+      const batch = db.getEmailBatch(batchId);
+      if (!batch) { sendError(res, 404, `Batch "${batchId}" not found.`); return; }
+      sendJson(res, 200, {
+        success: true,
+        batch: {
+          id: batch.id, mode: batch.mode, status: batch.status,
+          total: batch.total, sent: batch.sent, failed: batch.failed,
+          pending: batch.pending, processing: batch.processing || 0,
+          startedAt: batch.started_at, updatedAt: batch.updated_at,
+          completedAt: batch.completed_at, error: batch.error
+        }
+      });
+      return;
+    }
+
+    // POST /api/email/batch/:id/resume — resume a stalled or failed batch
+    if (pathname.match(/^\/api\/email\/batch\/([^/]+)\/resume$/) && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const batchId = pathname.match(/^\/api\/email\/batch\/([^/]+)\/resume$/)[1];
+      const batch = db.getEmailBatch(batchId);
+      if (!batch) { sendError(res, 404, `Batch "${batchId}" not found.`); return; }
+
+      if (batch.status === "COMPLETED") {
+        sendJson(res, 200, { success: true, message: "Batch is already completed", status: "COMPLETED" });
+        return;
+      }
+
+      if (batch.status === "FAILED") {
+        // Reset failed items so they can be retried.
+        db.getRawDb().prepare(`
+          UPDATE email_batch_items SET status = 'PENDING', attempts = 0, error = NULL
+          WHERE batch_id = ? AND status IN ('FAILED', 'PROCESSING')
+        `).run(batchId);
+        db.getRawDb().prepare(`
+          UPDATE email_batches SET status = 'PROCESSING', error = NULL, updated_at = datetime('now')
+          WHERE id = ?
+        `).run(batchId);
+        db.refreshEmailBatchCounters(batchId);
+      }
+
+      try {
+        const emailSender = require("./services/emailSender");
+        await emailSender.processBatchChunk(batchId, { verify: true });
+      } catch (err) {
+        safeLogger.error(`Resume failed for batch ${batchId}:`, err);
+        try { db.failEmailBatch(batchId, err.message); } catch (_) { /* ignore */ }
+      }
+
+      const refreshed = db.getEmailBatch(batchId);
+      sendJson(res, 200, {
+        success: true,
+        message: refreshed && refreshed.status === "COMPLETED" ? "Batch completed" : "Chunk processed, batch continuing",
+        batchId,
+        status: refreshed ? refreshed.status : "UNKNOWN",
+        results: {
+          total: refreshed ? refreshed.total : 0,
+          sent: refreshed ? refreshed.sent : 0,
+          failed: refreshed ? refreshed.failed : 0,
+          pending: refreshed ? refreshed.pending : 0
+        }
+      });
+      return;
+    }
+
+    // GET /api/email/batches — list recent batches
+    if (pathname === "/api/email/batches" && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const batches = db.getRawDb().prepare(`
+        SELECT id, mode, status, total, sent, failed, pending,
+               started_at, updated_at, completed_at, error
+        FROM email_batches ORDER BY started_at DESC LIMIT 20
+      `).all();
+      sendJson(res, 200, { success: true, batches });
+      return;
+    }
+
+    // POST /api/email/batch/worker — cron worker to keep batches running
+    if (pathname === "/api/email/batch/worker" && method === "POST") {
+      if (!db) { sendJson(res, 200, { success: true, message: "DB unavailable", resumed: 0 }); return; }
+      const staleBatches = db.getRawDb().prepare(`
+        SELECT id FROM email_batches
+        WHERE status = 'PROCESSING'
+          AND datetime(updated_at) < datetime('now', '-90 seconds')
+        ORDER BY started_at ASC LIMIT 3
+      `).all();
+      if (staleBatches.length === 0) {
+        sendJson(res, 200, { success: true, message: "No stale batches", resumed: 0 });
+        return;
+      }
+      let resumed = 0;
+      for (const batch of staleBatches) {
+        try {
+          db.getRawDb().prepare(`
+            UPDATE email_batch_items SET status = 'PENDING'
+            WHERE batch_id = ? AND status = 'PROCESSING'
+          `).run(batch.id);
+          const emailSender = require("./services/emailSender");
+          await emailSender.processBatchChunk(batch.id, { verify: false });
+          resumed++;
+        } catch (e) {
+          safeLogger.error(`Worker resume failed for ${batch.id}:`, e);
+          try { db.failEmailBatch(batch.id, e.message); } catch (_) { /* ignore */ }
+        }
+      }
+      sendJson(res, 200, { success: true, message: `Resumed ${resumed} batch(es)`, resumed });
       return;
     }
 
@@ -682,6 +1144,258 @@ module.exports = async function handler(req, res) {
       res.statusCode = 200;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Shopify Lead Generation API (Vercel Serverless)</title><style>:root { --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --muted: #94a3b8; --accent: #38bdf8; --border: #334155; } * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; } body { background: var(--bg); color: var(--text); padding: 2rem; } .container { max-width: 900px; margin: 0 auto; } h1 { color: var(--accent); margin-bottom: 0.5rem; } .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1.5rem 0; } .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; } .card-title { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; } .card-val { font-size: 1.6rem; font-weight: bold; margin-top: 0.25rem; color: #fff; } .btn { display: inline-block; padding: 0.5rem 1rem; background: var(--accent); color: #0f172a; text-decoration: none; border-radius: 6px; font-weight: 600; margin-right: 0.5rem; } .btn-sec { background: var(--card); color: var(--text); border: 1px solid var(--border); } .note { background: var(--card); border-left: 3px solid var(--accent); padding: 0.75rem 1rem; margin: 1rem 0; font-size: 0.85rem; color: var(--muted); }</style></head><body><div class="container"><h1>Shopify Lead Generation API</h1><p style="color: var(--muted);">Vercel Serverless Mode. Database: ${db ? "available" : "unavailable (env-only mode)"}</p><div class="note">Note: This is a serverless Vercel deployment. For full features (lead discovery, batch email, persistent data), use the Render backend at <a href="https://auto-1-66jv.onrender.com" style="color: var(--accent);">auto-1-66jv.onrender.com</a>.</div><div class="grid"><div class="card"><div class="card-title">Discovered</div><div class="card-val">${stats.discovered}</div></div><div class="card"><div class="card-title">Qualified</div><div class="card-val" style="color: #34d399;">${stats.qualified}</div></div><div class="card"><div class="card-title">Contacts</div><div class="card-val">${stats.contacts}</div></div><div class="card"><div class="card-title">Sent</div><div class="card-val">${stats.sent}</div></div></div><div style="margin-top: 1.5rem;"><a href="/api/stats" class="btn btn-sec">API Stats</a><a href="/api/leads?limit=10" class="btn btn-sec">API Leads</a><a href="/api/settings" class="btn btn-sec">API Settings</a><a href="/health" class="btn btn-sec">Health</a></div></div></body></html>`);
+      return;
+    }
+
+    // ── Remote Jobs API (Additive Only) ──────────────────────────────────────────
+    // GET /api/remote-jobs/jobs — list jobs with optional filters
+    if (pathname === "/api/remote-jobs/jobs" && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const jobs = db.getRawDb().prepare(`
+          SELECT id, canonical_id, title, company_name, company_domain, employment_type,
+                 experience_level, location, location_restrictions, salary_min, salary_max,
+                 salary_currency, relevance_score, match_reason, status, application_url,
+                 created_at, updated_at
+          FROM jobs
+        `);
+        // Apply filters if provided via query params
+        const query = new URLSearchParams(url.search);
+        const statusFilter = query.get("status");
+        const minScore = parseInt(query.get("minRelevance") || "0", 10);
+        const employmentType = query.get("employmentType");
+        const locationFilter = query.get("location");
+        let results = jobs;
+        if (statusFilter) {
+          results = results.filter((j) => j.status === statusFilter);
+        }
+        if (minScore > 0) {
+          results = results.filter((j) => (j.relevance_score || 0) >= minScore);
+        }
+        if (employmentType) {
+          results = results.filter((j) => j.employment_type === employmentType);
+        }
+        if (locationFilter && locationFilter !== "all") {
+          results = results.filter((j) => j.location && j.location.toLowerCase().includes(locationFilter.toLowerCase()));
+        }
+        sendJson(res, 200, { success: true, count: results.length, jobs: results });
+      } catch (e) {
+        sendError(res, 500, "Failed to fetch jobs", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/jobs — bulk upsert jobs
+    if (pathname === "/api/remote-jobs/jobs" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const jobService = require("./services/jobService");
+        const body = await parseBody(req);
+        const results = await jobService.upsertJobs(body.jobs || []);
+        sendJson(res, 200, { success: true, message: `${results.inserted} inserted, ${results.updated} updated`, results });
+      } catch (e) {
+        sendError(res, 500, "Failed to upsert jobs", e.message);
+      }
+      return;
+    }
+
+    // GET /api/remote-jobs/job-runs — check job run status
+    if (pathname === "/api/remote-jobs/job-runs" && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const runs = db.getRawDb().prepare(`
+          SELECT id, type, status, last_cursor, processed_count, success_count,
+                 error_message, started_at, completed_at, checkpoint_data
+          FROM job_runs ORDER BY started_at DESC LIMIT 5
+        `).all();
+        sendJson(res, 200, { success: true, count: runs.length, runs });
+      } catch (e) {
+        sendError(res, 500, "Failed to fetch job runs", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/discover/start — start a new discovery run
+    if (pathname === "/api/remote-jobs/discover/start" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const jobRunsService = require("./services/jobRunsService");
+        const body = await parseBody(req);
+        const runId = await jobRunsService.createRun("DISCOVERY", body?.source || "himalayas", body?.candidates || 100);
+        sendJson(res, 200, { success: true, runId, message: "Discovery run created" });
+      } catch (e) {
+        sendError(res, 500, "Failed to start discovery run", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/discover/next — fetch next chunk and update checkpoint
+    if (pathname === "/api/remote-jobs/discover/next" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const jobRunsService = require("./services/jobRunsService");
+        const body = await parseBody(req);
+        const result = await jobRunsService.processNextChunk(body.runId, body?.chunkSize || 25);
+        sendJson(res, 200, { success: true, ...result });
+      } catch (e) {
+        sendError(res, 500, "Failed to process next chunk", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/score — score jobs without relevance scores
+    if (pathname === "/api/remote-jobs/score" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const jobService = require("./services/jobService");
+        const body = await parseBody(req);
+        const results = await jobService.scoreJobs(body.jobIds || []);
+        sendJson(res, 200, { success: true, ...results });
+      } catch (e) {
+        sendError(res, 500, "Failed to score jobs", e.message);
+      }
+      return;
+    }
+
+    // GET /api/remote-jobs/applications — list applications with optional filters
+    if (pathname === "/api/remote-jobs/applications" && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const applications = db.getRawDb().prepare(`
+          SELECT a.id, a.job_id, a.status, a.applied_at, a.resume_version, a.cover_letter,
+                 a.screening_answers, a.recruiter_email, a.recruiter_phone, a.notes,
+                 j.title, j.company_name, j.relevance_score, j.status AS job_status,
+                 j.application_url, j.created_at AS job_created
+          FROM applications a
+          JOIN jobs j ON a.job_id = j.id
+        `);
+        const query = new URLSearchParams(url.search);
+        const statusFilter = query.get("status");
+        const jobId = query.get("jobId");
+        let results = applications.all();
+        if (statusFilter) {
+          results = results.filter((a) => a.status === statusFilter);
+        }
+        if (jobId) {
+          results = results.filter((a) => a.job_id === parseInt(jobId, 10));
+        }
+        sendJson(res, 200, { success: true, count: results.length, applications: results });
+      } catch (e) {
+        sendError(res, 500, "Failed to fetch applications", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/applications — create/update application
+    if (pathname === "/api/remote-jobs/applications" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const body = await parseBody(req);
+        if (!body || !body.job_id) {
+          sendError(res, 400, "job_id is required");
+          return;
+        }
+        const applicationService = require("./services/applicationService");
+        const result = await applicationService.upsertApplication(body);
+        sendJson(res, 200, { success: true, ...result });
+      } catch (e) {
+        const msg = e.message || "";
+        if (msg.includes("not found") || msg.includes("Job not found")) {
+          sendError(res, 404, e.message);
+        } else if (msg.includes("is required") || msg.includes("Invalid")) {
+          sendError(res, 400, e.message);
+        } else {
+          sendError(res, 500, "Failed to save application", e.message);
+        }
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/applications/generate — generate cover letter + screening answers
+    if (pathname === "/api/remote-jobs/applications/generate" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const body = await parseBody(req);
+        if (!body || !body.job_id) {
+          sendError(res, 400, "job_id is required");
+          return;
+        }
+        const applicationAssetGenerator = require("./services/applicationAssetGenerator");
+        const job = db.getRawDb().prepare("SELECT * FROM jobs WHERE id = ?").get(body.job_id);
+        if (!job) { sendError(res, 404, "Job not found"); return; }
+        const letter = applicationAssetGenerator.generateCoverLetter(job);
+        const screening = applicationAssetGenerator.generateScreeningAnswers(job);
+        sendJson(res, 200, {
+          success: true,
+          coverLetter: letter.coverLetter,
+          recommendedResumeVersion: letter.recommendedResumeVersion,
+          resumeFilename: letter.resumeFilename,
+          screeningAnswers: screening,
+        });
+      } catch (e) {
+        sendError(res, 500, "Failed to generate application assets", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/job-runs/:id/resume — resume a paused/failed run
+    if (pathname.match(/^\/api\/remote-jobs\/job-runs\/([^/]+)\/resume$/) && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const runId = pathname.match(/^\/api\/remote-jobs\/job-runs\/([^/]+)\/resume$/)[1];
+      try {
+        const jobRunsService = require("./services/jobRunsService");
+        const result = await jobRunsService.resumeRun(runId);
+        sendJson(res, 200, { success: true, ...result });
+      } catch (e) {
+        sendError(res, 500, "Failed to resume run", e.message);
+      }
+      return;
+    }
+
+    // GET /api/remote-jobs/job-runs/:id — detailed run status
+    if (pathname.match(/^\/api\/remote-jobs\/job-runs\/([^/]+)$/) && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      const runId = pathname.match(/^\/api\/remote-jobs\/job-runs\/([^/]+)$/)[1];
+      try {
+        const jobRunsService = require("./services/jobRunsService");
+        const run = db.getRawDb().prepare("SELECT * FROM job_runs WHERE id = ?").get(runId);
+        if (!run) { sendError(res, 404, `Run "${runId}" not found`); return; }
+        sendJson(res, 200, { success: true, run });
+      } catch (e) {
+        sendError(res, 500, "Failed to fetch run status", e.message);
+      }
+      return;
+    }
+
+    // GET /api/remote-jobs/settings — remote job settings
+    if (pathname === "/api/remote-jobs/settings" && method === "GET") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const settingsService = require("./services/settingsService");
+        const settings = settingsService.getSettings(false);
+        sendJson(res, 200, { success: true, settings: {
+          remoteJobDiscoveryEnabled: settings.remoteJobDiscoveryEnabled,
+          minRemoteJobRelevanceScore: settings.minRemoteJobRelevanceScore,
+          maxRemoteJobsPerSource: settings.maxRemoteJobsPerSource,
+          autoApplyDefault: settings.autoApplyDefault
+        }});
+      } catch (e) {
+        sendError(res, 500, "Failed to fetch settings", e.message);
+      }
+      return;
+    }
+
+    // POST /api/remote-jobs/settings — update remote job settings
+    if (pathname === "/api/remote-jobs/settings" && method === "POST") {
+      if (!db) { sendError(res, 503, "Database unavailable"); return; }
+      try {
+        const settingsService = require("./services/settingsService");
+        const body = await parseBody(req);
+        const updated = settingsService.updateSettings(body);
+        sendJson(res, 200, { success: true, message: "Settings updated", settings: updated });
+      } catch (e) {
+        sendError(res, 500, "Failed to update settings", e.message);
+      }
       return;
     }
 

@@ -5,8 +5,119 @@ const exclusionService = require("../services/exclusionService");
 const db = require("../db/database");
 const logger = require("../services/logger");
 const config = require("../config");
+const merchantIngestion = require("../services/merchantIngestion");
+const appStoreDiscovery = require("./appStoreDiscovery");
+const merchantStoreDiscovery = require("./merchantStoreDiscovery");
+
+const SOURCE_MODES = new Set(["freelancing", "appstore", "partner"]);
+
+async function runSourceLeadGeneration(options = {}) {
+  const source = options.source;
+  const targetLeads = Math.max(1, Number.parseInt(options.target, 10) || config.targetLeads || 100);
+
+  if (!SOURCE_MODES.has(source)) {
+    throw new Error(`Unsupported lead generation source "${source}". Use freelancing, appstore, or partner.`);
+  }
+
+  if (source === "freelancing") {
+    const discovery = await merchantStoreDiscovery.runMerchantStoreDiscovery({
+      keywords: options.keywords,
+      country: options.country,
+      target: targetLeads
+    });
+    const leads = merchantIngestion.getMerchantLeads({ status: "DISCOVERED", limit: targetLeads });
+    const allMerchantLeads = merchantIngestion.getMerchantLeads({ limit: 10000 });
+    const result = {
+      mode: source,
+      targetLeads,
+      discovery,
+      discovered: discovery.importedStores,
+      storesWithEmail: discovery.stores.filter((store) => Boolean(store.contactEmail)).length,
+      storesWithPhone: discovery.stores.filter((store) => Boolean(store.contactPhone)).length,
+      readyForEmail: leads.filter((lead) => Boolean(lead.contact_email)).length,
+      readyForWhatsApp: leads.filter((lead) => Boolean(lead.contact_phone)).length,
+      totalImportedStores: new Set(allMerchantLeads.map((lead) => lead.id)).size,
+      leads: leads.map((lead) => ({
+        id: lead.id,
+        storeName: lead.store_name,
+        website: lead.website_url,
+        installedApps: lead.installed_apps,
+        contactEmail: lead.contact_email,
+        contactPhone: lead.contact_phone,
+        estimatedRevenue: lead.estimated_revenue
+      }))
+    };
+    logger.info(`Freelancing mode selected ${result.discovered} imported Shopify store lead(s).`);
+    await exportService.exportAll();
+    return result;
+  }
+
+  await exclusionService.init();
+  const discoveryTarget = Math.max(targetLeads * (source === "appstore" ? 4 : 2), 50);
+  let discovery;
+  let companySource;
+
+  if (source === "appstore") {
+    companySource = "SHOPIFY_APP_STORE";
+    discovery = await appStoreDiscovery.runAppStoreDiscovery({
+      maxApps: discoveryTarget,
+      indiaOnly: true,
+      fetchAllPages: false,
+      enrichWithDetails: true
+    });
+  } else {
+    companySource = "SHOPIFY_PARTNER_DIRECTORY";
+    const { runDiscovery } = require("./discoverWorkflow");
+    discovery = await runDiscovery({
+      candidates: discoveryTarget,
+      fetchAllPages: false,
+      source: companySource
+    });
+  }
+
+  const candidates = db.getAllCompanies({
+    status: "DISCOVERED",
+    source: companySource,
+    limit: Math.max(targetLeads * 5, 100)
+  });
+  logger.info(`Researching ${candidates.length} ${source} candidate(s) for Shopify developer hiring contacts...`);
+
+  const results = [];
+  for (let i = 0; i < candidates.length; i++) {
+    const company = candidates[i];
+    logger.progress(i + 1, candidates.length, company.name, company.domain || "");
+    results.push(await researchCompany(company));
+    const readyCount = db.getAllCompanies({
+      source: companySource,
+      status: "READY"
+    }).length;
+    if (readyCount >= targetLeads) break;
+    if (i < candidates.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+  }
+
+  await exportService.exportAll();
+  const readyLeads = db.getAllCompanies({ source: companySource, status: "READY" });
+  const sourceCompanies = db.getAllCompanies({ source: companySource });
+  return {
+    mode: source,
+    targetLeads,
+    source: companySource,
+    discovery,
+    evaluated: results.length,
+    readyForOutreach: readyLeads.length,
+    totalSourceCompanies: sourceCompanies.length,
+    discoveredCandidatesRemaining: sourceCompanies.filter((company) => company.status === "DISCOVERED").length,
+    results
+  };
+}
 
 async function runLeadGeneration(options = {}) {
+  if (options.source !== undefined) {
+    return runSourceLeadGeneration(options);
+  }
+
   const targetLeads = options.target || config.targetLeads || 100;
   const minRelevance = options.minAppRelevanceScore || config.minAppRelevanceScore || 70;
 
@@ -95,4 +206,4 @@ async function runLeadGeneration(options = {}) {
   };
 }
 
-module.exports = { runLeadGeneration };
+module.exports = { runLeadGeneration, runSourceLeadGeneration };

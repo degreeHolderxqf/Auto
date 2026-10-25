@@ -4,6 +4,7 @@ const settingsService = require("./settingsService");
 const emailGenerator = {
   /**
    * Generates a tailored subject and body based on the researched company, contact, and active candidate settings
+   * Supports both Partner Directory and App Store sources with context-aware templates
    */
   generateEmail(company, contact = null) {
     const settings = settingsService.getSettings(false);
@@ -17,18 +18,46 @@ const emailGenerator = {
       ? settings.candidateSkills
       : [
           "Shopify & Shopify Plus Theme Development (Liquid, Theme App Extensions, Section Rendering)",
-          "Custom App & Full-Stack Development (Node.js, Remix, React, JavaScript)",
-          "Shopify Admin & Storefront GraphQL / REST APIs, Webhooks, and Systems Integrations",
-          "Checkout Extensibility, Functions, and Headless Commerce setups"
+          
         ];
 
     const resumeFilename = settings.resumeFilename || `${candidateName.replace(/\s+/g, "-")}-Resume.pdf`;
-    const resumePath = settings.resumePath || config.resumePath;
+    const resumePath = settings.resumePath || config.resumeFallbackPath || config.resumePath;
 
     const companyName = company.name || "Your Team";
     const recipientName = contact && contact.name ? contact.name : "Hiring Team";
-    
-    // Parse services
+
+    // ─── App Store Context Detection ───────────────────────────────────────────
+    const isAppStore = company.source === "SHOPIFY_APP_STORE";
+    let appName = null;
+    let appUrl = null;
+    let category = null;
+    let pricing = null;
+    let developerName = company.developer_name || companyName;
+
+    // Parse app data if this is an App Store company
+    if (isAppStore && company.public_apps) {
+      try {
+        const apps = typeof company.public_apps === "string"
+          ? JSON.parse(company.public_apps)
+          : company.public_apps;
+        if (Array.isArray(apps) && apps.length > 0) {
+          const primaryApp = apps[0];
+          appName = primaryApp.app_name;
+          appUrl = primaryApp.app_url;
+          category = primaryApp.category;
+          pricing = primaryApp.pricing;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+
+    // Fallback to direct fields
+    appName = appName || company.app_name;
+    appUrl = appUrl || company.app_store_url;
+
+    // ─── Source-specific Focus Sentence ───────────────────────────────────────
     let servicesList = [];
     if (company.shopify_services) {
       try {
@@ -42,7 +71,15 @@ const emailGenerator = {
     const isPlus = (company.partner_tier && company.partner_tier.toLowerCase().includes("plus")) || (servicesList && servicesList.some((s) => s.toLowerCase().includes("plus") || s.toLowerCase().includes("headless")));
 
     let focusSentence = "I have been following your work in the Shopify ecosystem";
-    if (isAppFocused) {
+
+    if (isAppStore && appName) {
+      // App Store specific: mention the app
+      focusSentence = `I discovered your app "${appName}" on the Shopify App Store${category ? ` (${category})` : ""}`;
+      if (pricing && pricing.toLowerCase() !== "free") {
+        focusSentence += ` with ${pricing} pricing`;
+      }
+      focusSentence += ` and was impressed by its ${company.rating ? `rating of ${company.rating}/5` : "offerings"}`;
+    } else if (isAppFocused) {
       focusSentence = `I noticed ${companyName}'s strong focus on custom Shopify apps, extensions, and technical integrations`;
     } else if (isPlus) {
       focusSentence = `I came across ${companyName}'s work in high-growth Shopify Plus and enterprise commerce implementations`;
@@ -50,9 +87,19 @@ const emailGenerator = {
       focusSentence = `I came across ${companyName}'s specialized services in ${servicesList.slice(0, 2).join(" & ")}`;
     }
 
-    const subject = `${candidateRole} — Application for Opportunities at ${companyName}`;
+    // ─── Subject Line ──────────────────────────────────────────────────────────
+    let subject = `${candidateRole} — Application for Opportunities at ${companyName}`;
+    if (isAppStore && appName) {
+      subject = `${candidateRole} — ${appName} App Developer Opportunity`;
+    }
 
+    // ─── Email Body ───────────────────────────────────────────────────────────
     const textSkills = skills.map((s) => `- ${s}`).join("\n");
+
+    let appContext = "";
+    if (isAppStore && appUrl) {
+      appContext = `\n\nP.S. Your app "${appName}" on Shopify App Store: ${appUrl}`;
+    }
 
     const text = `Hi ${recipientName},
 
@@ -72,10 +119,23 @@ Thank you for your time and consideration.
 Best regards,
 ${candidateName}
 ${candidateRole}
-Email: ${candidateEmail}${candidatePhone ? `\nPhone: ${candidatePhone}` : ""}
+Email: ${candidateEmail}${candidatePhone ? `\nPhone: ${candidatePhone}` : ""}${appContext}
 `;
 
+    // ─── HTML Email ────────────────────────────────────────────────────────────
     const htmlSkills = skills.map((s) => `<li style="margin-bottom: 4px;">${s}</li>`).join("\n");
+
+    let appBadge = "";
+    if (isAppStore && appName) {
+      appBadge = `
+        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 10px 14px; margin: 16px 0;">
+          <p style="margin: 0; font-size: 12px; color: #166534;">
+            <strong>App:</strong> ${appName}${appUrl ? ` · <a href="${appUrl}" style="color: #166534;">View on Shopify</a>` : ""}
+          </p>
+          ${category ? `<p style="margin: 4px 0 0 0; font-size: 11px; color: #15803d;">Category: ${category}</p>` : ""}
+        </div>
+      `;
+    }
 
     const html = `
       <div style="font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 620px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
@@ -87,7 +147,9 @@ Email: ${candidateEmail}${candidatePhone ? `\nPhone: ${candidatePhone}` : ""}
           <p style="margin-top: 0;">I hope you are doing well.</p>
           <p>My name is <strong>${candidateName}</strong>. I am a ${candidateRole} with approximately <strong>${candidateExperience}</strong> specializing in Shopify & Shopify Plus development, custom applications, and e-commerce integrations.</p>
           <p>${focusSentence}, and I am writing to express my strong interest in joining your development team.</p>
-          
+
+          ${appBadge}
+
           <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 14px 18px; margin: 20px 0; border-radius: 0 6px 6px 0;">
             <p style="margin: 0 0 8px 0; font-weight: 600; color: #0f172a;">Core Technical Expertise:</p>
             <ul style="margin: 0; padding-left: 18px; color: #475569;">
@@ -97,7 +159,7 @@ Email: ${candidateEmail}${candidatePhone ? `\nPhone: ${candidatePhone}` : ""}
 
           <p>I have attached my updated resume for your review. If you have an open role or are planning to expand your engineering team, I would be grateful for the opportunity to speak with you.</p>
           <p>Thank you very much for your time and consideration.</p>
-          
+
           <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e2e8f0;">
             <p style="margin: 0; font-weight: 600; color: #0f172a;">Best regards,</p>
             <p style="margin: 2px 0 0 0; color: #1e293b; font-size: 15px;"><strong>${candidateName}</strong></p>

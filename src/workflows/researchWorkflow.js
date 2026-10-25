@@ -106,7 +106,8 @@ async function researchCompany(company) {
     }
 
     // Evaluate Multi-Source Decision Logic
-    const evalResult = employeeVerifier.evaluateMultiSource(linkedInEvidence, secondaryEvidence);
+    const employeeThreshold = company.source === "SHOPIFY_APP_STORE" ? null : undefined;
+    const evalResult = employeeVerifier.evaluateMultiSource(linkedInEvidence, secondaryEvidence, employeeThreshold);
 
     // Save Discovered Evidence Sources
     if (webResearch.sources && webResearch.sources.length > 0) {
@@ -201,7 +202,8 @@ async function researchCompany(company) {
     const hasHrContact = currentContacts.some((c) => c.email_type === "HR / Recruitment" && c.confidence !== "LOW");
 
     if (!hasHrContact && (company.name || domain)) {
-      const searchRes = await searchProvider.searchHiringContacts(company.name, domain);
+      const hiringFocus = company.source === "SHOPIFY_APP_STORE" ? "Shopify app developer" : "Shopify developer";
+      const searchRes = await searchProvider.searchHiringContacts(company.name, domain, hiringFocus);
       for (const sc of searchRes.contacts) {
         const mxValid = await validator.checkMxRecords(sc.email);
         db.upsertContact({
@@ -272,7 +274,7 @@ async function researchCompany(company) {
       employee_size_range: evalResult.employee_size_range,
       employee_count_source: evalResult.employee_count_source,
       employee_count_source_url: evalResult.employee_count_source_url,
-      employee_count_verified: 1,
+      employee_count_verified: evalResult.employee_count_verified ? 1 : 0,
       employee_count_verified_at: evalResult.employee_count_verified_at,
       employee_count_status: "QUALIFIED",
       app_relevance_score: appRelevanceScore,

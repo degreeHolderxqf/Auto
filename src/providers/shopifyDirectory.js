@@ -50,18 +50,23 @@ class ShopifyDirectoryProvider {
   }
 
   /**
-   * Discovers candidate Shopify Partner companies across directory pages
+   * Discovers candidate Shopify Partner companies across directory pages.
+   * By default, scan all available pages until pagination ends, while still
+   * using the target as a minimum floor when a caller wants early stopping.
+   *
    * @param {number} maxCandidates Target number of raw candidate partners (e.g. 150)
+   * @param {{ fetchAllPages?: boolean }} options
    */
-  async discoverPartners(maxCandidates = 150) {
-    logger.info(`Starting Shopify Partner Directory discovery (Target: >= ${maxCandidates} candidates)...`);
+  async discoverPartners(maxCandidates = 150, options = {}) {
+    const fetchAllPages = options.fetchAllPages !== false;
+    logger.info(`Starting Shopify Partner Directory discovery (Target: >= ${maxCandidates} candidates, fetchAllPages=${fetchAllPages})...`);
     const candidates = [];
     const seenUrls = new Set();
     let page = 1;
     let emptyPages = 0;
     const maxPages = 40;
 
-    while (candidates.length < maxCandidates && page <= maxPages && emptyPages < 3) {
+    while (page <= maxPages && emptyPages < 3 && (fetchAllPages || candidates.length < maxCandidates)) {
       const pageUrl = this.buildPageUrl(page);
       logger.info(`Fetching Directory Page ${page}: ${pageUrl}`);
 
@@ -93,7 +98,10 @@ class ShopifyDirectoryProvider {
       await new Promise((r) => setTimeout(r, 1000));
     }
 
-    logger.success(`Discovery completed. Total raw partners collected: ${candidates.length}`);
+    const outcome = fetchAllPages
+      ? `Discovery completed. Total raw partners collected: ${candidates.length} (all pages scanned)`
+      : `Discovery completed. Total raw partners collected: ${candidates.length}`;
+    logger.success(outcome);
     return candidates;
   }
 

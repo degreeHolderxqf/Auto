@@ -16,9 +16,9 @@ class ExclusionService {
 
   async init() {
     if (this.isLoaded) return;
-    await this.loadFromCsv();
+    await this.loadFromCsv();  
     this.syncToDb();
-    this.isLoaded = true;
+    this.isLoaded = true;  
   }
 
   async loadFromCsv() {

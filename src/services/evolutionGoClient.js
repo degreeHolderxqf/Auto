@@ -219,6 +219,26 @@ class EvolutionGoClient {
   }
 
   extractErrorMessage(data, statusCode) {
+    // Special-case: Evolution API returns "Bad Request" with response.message as
+    // an array of number-existence probes, e.g. [{jid, exists:false, number}].
+    // Convert that into a readable single message instead of "[object Object]".
+    const responseMessage = data?.response?.message;
+    if (Array.isArray(responseMessage) && responseMessage.length > 0) {
+      const items = responseMessage.map((item) => {
+        if (!item || typeof item !== "object") return String(item);
+        const number = item.number || item.jid || "unknown";
+        if (item.exists === false) {
+          return `${number} is not a registered WhatsApp number`;
+        }
+        if (item.exists === true) {
+          return `${number} is a valid WhatsApp number`;
+        }
+        if (item.message) return `${number}: ${item.message}`;
+        return this.safeStringify(item, 200);
+      });
+      return items.join("; ");
+    }
+
     const candidates = [
       data?.response?.message,
       data?.message,
@@ -228,10 +248,33 @@ class EvolutionGoClient {
       data?.raw
     ];
     for (const candidate of candidates) {
-      if (!candidate) continue;
-      if (Array.isArray(candidate)) return candidate.join(", ");
-      if (typeof candidate === "object") return this.safeStringify(candidate, 500);
-      return String(candidate);
+      if (candidate === undefined || candidate === null || candidate === "") continue;
+      if (Array.isArray(candidate)) {
+        // Arrays of objects/primitives: convert each item safely, never call toString() blindly.
+        const parts = candidate.map((item) => {
+          if (item === null || item === undefined) return "";
+          if (typeof item === "string") return item;
+          if (typeof item === "object") {
+            const inner = item.message || item.error || item.details;
+            if (inner) return String(inner);
+            return this.safeStringify(item, 200);
+          }
+          return String(item);
+        }).filter(Boolean);
+        if (parts.length > 0) return parts.join("; ");
+        continue;
+      }
+      if (typeof candidate === "object") {
+        const nestedMessage = candidate.message || candidate.error || candidate.details;
+        if (nestedMessage) {
+          return this.extractErrorMessage({ message: nestedMessage }, statusCode);
+        }
+        return this.safeStringify(candidate, 500);
+      }
+      const stringValue = String(candidate);
+      if (stringValue && stringValue !== "[object Object]") {
+        return stringValue;
+      }
     }
     return `HTTP ${statusCode}`;
   }
@@ -1183,8 +1226,8 @@ class EvolutionGoClient {
     return clean;
   }
 
-  async sendTextMessage(phone, messageText, customInstanceName = null) {
-    const apiConfig = this.getApiConfig();
+  async sendTextMessage(phone, messageText, customInstanceName = null, customConfig = null) {
+    const apiConfig = this.getApiConfig(customConfig);
     const name = customInstanceName || apiConfig.instanceName;
 
     const cleanNumber = this.normalizeSendNumber(phone);
@@ -1249,6 +1292,77 @@ class EvolutionGoClient {
       status: res.status,
       errorCode: res.errorCode,
       error: res.error || "Failed to send WhatsApp message through Evolution API"
+    };
+  }
+
+  async sendDocumentMessage(phone, document, filename, caption = "", customInstanceName = null, customConfig = null) {
+    const apiConfig = this.getApiConfig(customConfig);
+    const name = customInstanceName || apiConfig.instanceName;
+    const cleanNumber = this.normalizeSendNumber(phone);
+
+    if (!cleanNumber) {
+      return { ok: false, error: `Invalid phone number format: ${phone}. Must be a valid mobile number with country code.` };
+    }
+    if (!Buffer.isBuffer(document) || document.length === 0) {
+      return { ok: false, error: "Resume document is empty or unavailable." };
+    }
+
+    if (apiConfig.dryRun) {
+      logger.info(`[WhatsApp DRY RUN] Would send resume ${filename} to +${cleanNumber}`);
+      return {
+        ok: true,
+        dryRun: true,
+        messageId: `dry_run_document_${Date.now()}`,
+        message: `Resume simulated to +${cleanNumber} (DRY RUN active)`
+      };
+    }
+
+    const health = await this.checkHealth(apiConfig);
+    if (!health.authenticated) {
+      return {
+        ok: false,
+        error: this.humanizeError(health.error, health.status, health.message),
+        errorCode: health.error,
+        status: health.status
+      };
+    }
+
+    const encodedDocument = document.toString("base64");
+    const payload = {
+      number: cleanNumber,
+      mediatype: "document",
+      mimetype: "application/pdf",
+      caption,
+      fileName: filename,
+      media: encodedDocument
+    };
+
+    let res;
+    if (health.profile === PROFILE_GO) {
+      const state = await this.getConnectionState(name, apiConfig, PROFILE_GO);
+      const instanceToken = state.instanceToken || apiConfig.apiKey;
+      res = await this.request("/send/document", "POST", payload, {}, { ...apiConfig, apiKey: instanceToken });
+      if (!res.ok && (res.status === 404 || res.status === 405)) {
+        res = await this.request(`/message/sendMedia/${this.encodeInstanceName(name)}`, "POST", payload, {}, apiConfig);
+      }
+    } else {
+      res = await this.request(`/message/sendMedia/${this.encodeInstanceName(name)}`, "POST", payload, {}, apiConfig);
+    }
+
+    if (res.ok && res.data) {
+      return {
+        ok: true,
+        dryRun: false,
+        messageId: res.data.key?.id || res.data.messageId || res.data.id || `document_${Date.now()}`,
+        data: res.data
+      };
+    }
+
+    return {
+      ok: false,
+      status: res.status,
+      errorCode: res.errorCode,
+      error: res.error || "Failed to send resume through Evolution API"
     };
   }
 

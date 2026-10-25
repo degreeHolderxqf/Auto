@@ -1,6 +1,7 @@
 const readline = require("readline");
 const db = require("../db/database");
-const emailGenerator = require("../services/emailGenerator");
+const outreachEmailGenerator = require("../services/outreachEmailGenerator");
+const emailTemplates = require("../services/emailTemplates");
 const emailSender = require("../services/emailSender");
 const exportService = require("../services/exportService");
 const logger = require("../services/logger");
@@ -29,18 +30,6 @@ async function showPreview(options = {}) {
 
   const previewItems = [];
   leads.forEach((l, idx) => {
-    const contact = {
-      id: l.contact_id,
-      name: l.contact_name,
-      role: l.contact_role,
-      email: l.email,
-      email_type: l.email_type,
-      confidence: l.email_confidence
-    };
-
-    const hasEmail = Boolean(l.email);
-    const emailData = hasEmail ? emailGenerator.generateEmail(l, contact) : null;
-
     previewItems.push({
       "No.": idx + 1,
       Company: l.name.slice(0, 22),
@@ -88,7 +77,8 @@ async function runSend(options = {}) {
   const selectedLeads = limit ? eligibleLeads.slice(0, limit) : eligibleLeads;
   logger.section(`Outreach Sender (Total: ${selectedLeads.length} Leads, Mode: ${isDryRun ? "🧪 DRY RUN" : "🚀 LIVE SEND"})`);
 
-  const batchToSend = selectedLeads.map((l) => {
+  const templateId = await emailTemplates.getActiveTemplateId();
+  const batchToSend = await Promise.all(selectedLeads.map(async (l) => {
     const contact = {
       id: l.contact_id,
       name: l.contact_name,
@@ -101,9 +91,9 @@ async function runSend(options = {}) {
     return {
       company: l,
       contact,
-      mailOptions: emailGenerator.generateEmail(l, contact)
+      mailOptions: await outreachEmailGenerator.generateEmail(l, contact, { templateId })
     };
-  });
+  }));
 
   console.log(`\n📋 Prepared ${batchToSend.length} emails for sending:`);
   batchToSend.forEach((item, i) => {

@@ -1,15 +1,55 @@
 const https = require("https");
 const http = require("http");
 const { URL } = require("url");
+const dns = require("node:dns").promises;
+const net = require("node:net");
 const normalizer = require("../services/normalizer");
 const validator = require("../services/validator");
 const employeeVerifier = require("../services/employeeVerifier");
 const logger = require("../services/logger");
 
+const ROBOTS_CACHE_TTL_MS = 10 * 60 * 1000;
+const robotsPolicyCache = new Map();
+
+function isPrivateAddress(address) {
+  if (net.isIPv4(address)) {
+    const octets = address.split(".").map(Number);
+    return octets[0] === 0 || octets[0] === 10 || octets[0] === 127 ||
+      (octets[0] === 169 && octets[1] === 254) ||
+      (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+      (octets[0] === 192 && octets[1] === 168) ||
+      (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) ||
+      (octets[0] === 198 && (octets[1] === 18 || octets[1] === 19));
+  }
+  const lower = address.toLowerCase();
+  const mappedIpv4 = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mappedIpv4) return isPrivateAddress(mappedIpv4[1]);
+  return lower === "::1" || lower === "::" || lower.startsWith("fc") ||
+    lower.startsWith("fd") || lower.startsWith("fe8") || lower.startsWith("fe9") ||
+    lower.startsWith("fea") || lower.startsWith("feb") ||
+    lower.startsWith("::ffff:127.") || lower.startsWith("::ffff:10.") ||
+    lower.startsWith("::ffff:192.168.");
+}
+
+async function isPublicHost(hostname) {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) return false;
+  if (net.isIP(host)) return !isPrivateAddress(host);
+  try {
+    const addresses = await dns.lookup(host, { all: true, verbatim: true });
+    return addresses.length > 0 && addresses.every((record) => !isPrivateAddress(record.address));
+  } catch {
+    return false;
+  }
+}
+
 function fetchUrl(targetUrl, timeout = 10000) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     try {
       const parsed = new URL(targetUrl);
+      if (!["http:", "https:"].includes(parsed.protocol) || !(await isPublicHost(parsed.hostname))) {
+        return resolve({ status: 0, html: "" });
+      }
       const mod = parsed.protocol === "http:" ? http : https;
       const req = mod.get(
         targetUrl,
@@ -48,14 +88,119 @@ function fetchUrl(targetUrl, timeout = 10000) {
   });
 }
 
+function extractMetaContent(html, key) {
+  const tags = html.match(/<meta\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const name = tag.match(/\b(?:property|name)=["']([^"']+)["']/i);
+    const content = tag.match(/\bcontent=["']([^"']*)["']/i);
+    if (name && content && name[1].toLowerCase() === key.toLowerCase()) {
+      return content[1].replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').trim();
+    }
+  }
+  return "";
+}
+
+function detectStoreTechnology(html) {
+  const lower = html.toLowerCase();
+  const signals = [
+    ["Shopify", /cdn\.shopify\.com|shopify\.theme|shopify-section|myshopify\.com|\/cdn\/shop\//],
+    ["Klaviyo", /klaviyo\.com|klaviyo\.js|static\.klaviyo/],
+    ["Recharge", /rechargepayments\.com|recharge\.js/],
+    ["Yotpo", /yotpo\.com|yotpo\.js/],
+    ["Gorgias", /gorgias\.io|gorgias-chat/],
+    ["Judge.me", /judge\.me|judgeme/],
+    ["Loox", /loox\.io|loox\.js/],
+    ["Okendo", /okendo\.io|okendo/],
+    ["Omnisend", /omnisend\.com|omnisnippet/],
+    ["Google Analytics", /google-analytics\.com|gtag\(["']config["']|google-analytics/],
+    ["Google Tag Manager", /googletagmanager\.com/],
+    ["Meta Pixel", /connect\.facebook\.net|fbq\(["']init/],
+    ["Cloudflare", /cloudflare/]
+  ];
+  return signals.filter(([, pattern]) => pattern.test(lower)).map(([name]) => name);
+}
+
 class CompanyWebsiteProvider {
+  async isPublicHost(hostname) {
+    return isPublicHost(hostname);
+  }
+
+  isAllowedByRobots(robotsText, targetUrl) {
+    const path = new URL(targetUrl).pathname;
+    let activeGroup = false;
+    let groupHasRules = false;
+    const rules = [];
+
+    for (const rawLine of robotsText.split(/\r?\n/)) {
+      const line = rawLine.split("#")[0].trim();
+      if (!line) continue;
+      const separator = line.indexOf(":");
+      if (separator < 0) continue;
+      const directive = line.slice(0, separator).trim().toLowerCase();
+      const value = line.slice(separator + 1).trim();
+      if (directive === "user-agent") {
+        if (groupHasRules) {
+          activeGroup = false;
+          groupHasRules = false;
+        }
+        if (value === "*") activeGroup = true;
+        continue;
+      }
+      if (!activeGroup || !["allow", "disallow"].includes(directive) || !value) continue;
+      rules.push({ allow: directive === "allow", path: value });
+      groupHasRules = true;
+    }
+
+    const matching = rules
+      .filter((rule) => path.startsWith(rule.path.replace(/\*.*$/, "")))
+      .sort((a, b) => b.path.length - a.path.length || Number(b.allow) - Number(a.allow))[0];
+    return !matching || matching.allow;
+  }
+
+  async canCrawlUrl(targetUrl) {
+    try {
+      const parsed = new URL(targetUrl);
+      if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password) {
+        return { allowed: false, reason: "unsupported URL" };
+      }
+      if (!(await isPublicHost(parsed.hostname))) {
+        return { allowed: false, reason: "host is not public" };
+      }
+
+      const cacheKey = parsed.origin;
+      let policy = robotsPolicyCache.get(cacheKey);
+      if (!policy || policy.expiresAt <= Date.now()) {
+        const robots = await fetchUrl(new URL("/robots.txt", parsed.origin).toString());
+        if (robots.status === 404 || robots.status === 410) {
+          policy = { missing: true, robotsText: "", expiresAt: Date.now() + ROBOTS_CACHE_TTL_MS };
+        } else if (robots.status === 200) {
+          policy = { missing: false, robotsText: robots.html, expiresAt: Date.now() + ROBOTS_CACHE_TTL_MS };
+        } else {
+          policy = { unavailable: true, robotsText: "", expiresAt: Date.now() + 60 * 1000 };
+        }
+        robotsPolicyCache.set(cacheKey, policy);
+      }
+
+      if (policy.unavailable) return { allowed: false, reason: "robots.txt could not be read" };
+      const allowed = policy.missing || this.isAllowedByRobots(policy.robotsText, targetUrl);
+      return { allowed, reason: allowed ? "allowed by robots.txt" : "blocked by robots.txt" };
+    } catch {
+      return { allowed: false, reason: "URL or robots policy could not be verified" };
+    }
+  }
+
   /**
    * Crawls a company website and its subpages for contacts, careers URLs, employee headcount, and Shopify app evidence.
    */
-  async researchWebsite(domain, officialWebsite = null) {
+  async researchWebsite(domain, officialWebsite = null, options = {}) {
     const cleanDomain = normalizer.normalizeDomain(domain || officialWebsite);
     if (!cleanDomain) {
-      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null, sources: [] };
+      return {
+        contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null,
+        sources: [], isShopifyStore: false, storeName: null, storeDescription: null,
+        installedApps: [], techStack: [], productCount: null, country: null,
+        crawlBlockedByRobots: false, websiteReachable: false
+      };
     }
 
     const startUrls = [
@@ -66,8 +211,18 @@ class CompanyWebsiteProvider {
 
     let homepageHtml = "";
     let effectiveBaseUrl = `https://${cleanDomain}`;
+    let robotsText = "";
+    let crawlBlockedByRobots = false;
+    if (options.respectRobots) {
+      const robots = await fetchUrl(`https://${cleanDomain}/robots.txt`);
+      if (robots.status === 200) robotsText = robots.html;
+    }
 
     for (const url of startUrls) {
+      if (options.respectRobots && !this.isAllowedByRobots(robotsText, url)) {
+        crawlBlockedByRobots = true;
+        continue;
+      }
       const res = await fetchUrl(url);
       if (res.status === 200 && res.html.length > 500) {
         homepageHtml = res.html;
@@ -77,7 +232,46 @@ class CompanyWebsiteProvider {
     }
 
     if (!homepageHtml) {
-      return { contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null, sources: [] };
+      return {
+        contacts: [], careersUrl: null, linkedInUrl: null, publicApps: [], employeeInfo: null,
+        sources: [], isShopifyStore: false, storeName: null, storeDescription: null,
+        installedApps: [], techStack: [], productCount: null, country: null,
+        crawlBlockedByRobots, websiteReachable: false
+      };
+    }
+
+    const shopifySignals = /cdn\.shopify\.com|shopify\.theme|shopify-section|myshopify\.com|\/cdn\/shop\//i.test(homepageHtml);
+    const storeName = extractMetaContent(homepageHtml, "og:site_name") ||
+      extractMetaContent(homepageHtml, "application-name") ||
+      ((homepageHtml.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || "")
+        .replace(/&amp;/gi, "&").replace(/<[^>]+>/g, "").trim().split(/\s+[|–—-]\s+/)[0].trim();
+    const storeDescription = extractMetaContent(homepageHtml, "description") ||
+      extractMetaContent(homepageHtml, "og:description");
+    const techStack = detectStoreTechnology(homepageHtml);
+    const installedApps = techStack.filter((item) => item !== "Shopify" && item !== "Cloudflare");
+    const productUrls = new Set(
+      [...homepageHtml.matchAll(/href=["']([^"'#?]*\/products\/[^"'#?]+)["']/gi)].map((match) => match[1])
+    );
+    const productCount = productUrls.size || null;
+    let country = null;
+    const jsonLdScripts = homepageHtml.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi) || [];
+    for (const script of jsonLdScripts) {
+      const jsonText = script.replace(/^<script[^>]*>|<\/script>$/gi, "");
+      try {
+        const jsonLd = JSON.parse(jsonText);
+        const entries = Array.isArray(jsonLd) ? jsonLd : [jsonLd];
+        for (const entry of entries) {
+          const address = entry.address;
+          const addressCountry = Array.isArray(address) ? address[0]?.addressCountry : address?.addressCountry;
+          if (typeof addressCountry === "string" && addressCountry.trim()) {
+            country = addressCountry.trim();
+            break;
+          }
+        }
+      } catch {
+        // Ignore malformed JSON-LD; other public storefront evidence is still usable.
+      }
+      if (country) break;
     }
 
     const discoveredContacts = [];
@@ -98,7 +292,8 @@ class CompanyWebsiteProvider {
       });
     });
 
-    const discoveredPhones = [...validator.extractPhones(homepageHtml, "IN", effectiveBaseUrl)];
+    const phoneCountryCode = options.countryCode || "IN";
+    const discoveredPhones = [...validator.extractPhones(homepageHtml, phoneCountryCode, effectiveBaseUrl)];
 
     sources.push({
       source_type: "Official Website Homepage",
@@ -128,6 +323,23 @@ class CompanyWebsiteProvider {
     ];
 
     const subpageUrls = new Set();
+    const contactPagePaths = [
+      "/contact",
+      "/pages/contact-us",
+      "/pages/contact",
+      "/contact-us"
+    ];
+
+    for (const contactPath of contactPagePaths) {
+      try {
+        const contactUrl = new URL(contactPath, effectiveBaseUrl);
+        if (contactUrl.origin === new URL(effectiveBaseUrl).origin) {
+          subpageUrls.add(contactUrl.toString());
+        }
+      } catch {
+        // Ignore malformed base URLs; homepage research remains usable.
+      }
+    }
 
     targetSubpagePatterns.forEach((pattern) => {
       const matches = [...homepageHtml.matchAll(pattern)];
@@ -145,10 +357,17 @@ class CompanyWebsiteProvider {
       });
     });
 
+    const prioritizedSubpageUrls = Array.from(subpageUrls).sort((a, b) => {
+      const isContact = (url) => /contact|connect|reach-us/i.test(new URL(url).pathname);
+      return Number(isContact(b)) - Number(isContact(a));
+    });
+
     // Limit crawling up to 6 most relevant subpages
-    const subpagesToCrawl = Array.from(subpageUrls).slice(0, 6);
+    const maxSubpages = Math.max(0, Math.min(Number.parseInt(options.maxSubpages, 10) || 6, 6));
+    const subpagesToCrawl = prioritizedSubpageUrls.slice(0, maxSubpages);
 
     for (const subUrl of subpagesToCrawl) {
+      if (options.respectRobots && !this.isAllowedByRobots(robotsText, subUrl)) continue;
       const lower = subUrl.toLowerCase();
       const isCareers = lower.includes("career") || lower.includes("job") || lower.includes("join") || lower.includes("work");
       if (isCareers && !careersUrl) {
@@ -170,7 +389,7 @@ class CompanyWebsiteProvider {
         });
 
         // Extract subpage phones
-        const pagePhones = validator.extractPhones(pageRes.html, "IN", subUrl);
+        const pagePhones = validator.extractPhones(pageRes.html, phoneCountryCode, subUrl);
         pagePhones.forEach((p) => {
           if (!discoveredPhones.some((existing) => existing.normalized_phone === p.normalized_phone)) {
             discoveredPhones.push(p);
@@ -198,6 +417,9 @@ class CompanyWebsiteProvider {
           const appUrl = m[1].split("?")[0];
           if (!publicApps.includes(appUrl)) publicApps.push(appUrl);
         });
+      }
+      if (options.respectRobots && options.crawlDelayMs) {
+        await new Promise((resolve) => setTimeout(resolve, options.crawlDelayMs));
       }
     }
 
@@ -258,7 +480,16 @@ class CompanyWebsiteProvider {
       publicApps,
       employeeInfo: employeeEvidence,
       employeeEvidence,
-      sources
+      sources,
+      isShopifyStore: shopifySignals,
+      storeName: storeName || null,
+      storeDescription: storeDescription || null,
+      installedApps,
+      techStack,
+      productCount,
+      country,
+      crawlBlockedByRobots: false,
+      websiteReachable: true
     };
   }
 }

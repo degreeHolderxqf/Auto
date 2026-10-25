@@ -1,0 +1,14 @@
+{
+  "freelancingStores": {
+    "subject": "A lighter custom feature for {{store_name}}",
+    "body": "Hi there,\n\nI came across {{store_name}} and wanted to reach out. If your team is paying for third-party apps to cover store features that could live directly in the theme, I can help replace the slow or expensive pieces with clean, maintainable custom Liquid functionality.\n\nI am a full-stack developer focused on Shopify, custom Liquid, React, Remix, GraphQL, Node.js, and Shopify Admin APIs. I have delivered 90+ custom Shopify stores and focus on improving the storefront without adding unnecessary app overhead.\n\nIf you have one feature in mind, send it over and I can suggest whether a custom build would be a good fit. You can see examples of my work here: https://himanshusoni-lilac.vercel.app/\n\nWould a short conversation next week be useful?\n\nBest,\nHimanshu\nShopify Full-Stack Developer\n+919302615727"
+  },
+  "appDevelopers": {
+    "subject": "Extra Shopify app development capacity for {{app_name}}",
+    "body": "Hi {{app_name}} team,\n\nI am a Shopify-focused full-stack developer and can help clear development backlogs across Remix, React, GraphQL, Shopify Admin APIs, and Admin UI extensions.\n\nI have delivered 50+ custom Shopify stores and am comfortable joining an existing codebase, following its conventions, and taking a scoped item through implementation and review.\n\nIf there is a queued feature, extension, or integration that needs extra capacity, I would be glad to compare notes and see where I can help.\n\nBest,\nHimanshu\nFull-Stack Shopify Developer"
+  },
+  "agencies": {
+    "subject": "White-label Shopify development support for {{agency_name}}",
+    "body": "Hello {{agency_name}} team,\n\nI provide reliable white-label Shopify development support for agencies when client timelines exceed in-house capacity. I strictly adhere to your Figma-to-Liquid specifications, including layout, responsive behavior, design details, and interactions, and I raise questions early to avoid rework.\n\nMy work includes custom Liquid sections, Shopify theme builds, React, Remix, GraphQL, Node.js, and Shopify Admin APIs. I have delivered 50+ custom Shopify stores and can take on clearly scoped overflow work while keeping communication and delivery aligned with your agency.\n\nIf you have upcoming overflow work, I would be happy to discuss how I can support your team.\n\nBest regards,\nHimanshu\nFull Stack Shopify Developer"
+  }
+}

@@ -1,0 +1,11 @@
+store_name,website_url,contact_email,contact_phone,installed_apps,tech_stack,estimated_revenue,country,platform
+TechStyle Clothing,https://techstyleclothing.com,john@techstyleclothing.com,+15551234567,"klaviyo, yotpo, recharge, pagefly, hotjar","Shopify, Liquid, JavaScript","$100K-$500K",US,Shopify
+Urban Home Decor,https://urbanhomdecor.com,sarah@urbanhomdecor.com,+15559876543,"omnisend, judge.me, gorgias, shogun, tidio","Shopify Plus, React, GraphQL","$500K-$1M",CA,Shopify
+Fresh Foods Market,https://freshfoodsmarket.com,mike@freshfoodsmarket.com,+15554567890,"klaviyo, postscript, smile.io, zipify, privy","Shopify, Node.js, REST API","$1M-$5M",US,Shopify
+Elite Fitness Gear,https://elitefitnessgear.com,contact@elitefitnessgear.com,+15552345678,"attentive, yotpo, recharge, pagefly, gorgias","Shopify Plus, Liquid, TypeScript","$5M+",UK,Shopify
+Cozy Corner Books,https://cozycornerbooks.com,info@cozycornerbooks.com,+15553456789,"mailchimp, judge.me, loopyloyalty, gempages, microsoft_clarity","Shopify, PHP, MySQL","$10K-$100K",US,Shopify
+Pet Paradise Store,https://petparadise.com,hello@petparadise.com,+15555678901,"klaviyo, okendo, afterpay, pagefly, hotjar","Shopify, React Native, GraphQL","$100K-$500K",AU,Shopify
+Green Garden Supply,https://greengarden.com,sales@greengarden.com,+15556789012,"omnisend, stamped.io, snapmint, shogun, tidio","Shopify Plus, Liquid, JavaScript","$500K-$1M",CA,Shopify
+Modern Art Prints,https://modernartprints.com,art@modernartprints.com,+15557890123,"klaviyo, yotpo, recharge, zipify, privy","Shopify, Vue.js, REST API","$10K-$100K",US,Shopify
+Luxury Watch Hub,https://luxurywatchhub.com,support@luxurywatchhub.com,+15558901234,"attentive, okendo, affirm, gempages, gorgias","Shopify Plus, Liquid, TypeScript","$5M+",US,Shopify
+Outdoor Adventure Co,https://outdooradventure.com,team@outdooradventure.com,+15559012345,"postscript, judge.me, klarna, pagefly, microsoft_clarity","Shopify, Node.js, GraphQL","$100K-$500K",US,Shopify

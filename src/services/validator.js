@@ -14,6 +14,14 @@ const IGNORED_DOMAINS = new Set([
   "github.com", "schema.org", "gravatar.com", "wixpress.com", "wordpress.org"
 ]);
 
+const ASSET_SUFFIXES = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "svg", "css", "js", "mjs", "map",
+  "woff", "woff2", "ttf", "eot", "pdf", "ico", "bmp", "tif", "tiff"
+]);
+
+const EMAIL_PATTERN = /[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}/g;
+const EMAIL_FORMAT_PATTERN = /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/i;
+
 const HR_PREFIXES = [
   "hr", "career", "careers", "recruiter", "recruitment", "talent",
   "talentacquisition", "hiring", "people", "peopleops", "peopleoperations",
@@ -43,24 +51,25 @@ const validator = {
     // Check basic length and structure
     if (cleaned.length < 5 || cleaned.length > 254) return false;
     if (cleaned.includes(" ") || cleaned.includes("..") || cleaned.includes("/") || cleaned.includes("\\")) return false;
-
-    // Check email extension noise (e.g. image filenames parsed as email)
-    if (/\.(png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2|ttf|pdf)$/i.test(cleaned)) return false;
-
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(cleaned)) return false;
+    if (!EMAIL_FORMAT_PATTERN.test(cleaned)) return false;
 
     const parts = cleaned.split("@");
     if (parts.length !== 2) return false;
 
+    const local = parts[0];
     const domain = parts[1];
+    if (local.startsWith(".") || local.endsWith(".")) return false;
     if (!domain.includes(".") || domain.startsWith(".") || domain.endsWith(".")) return false;
+    if (domain.split(".").some((label) => !label || label.startsWith("-") || label.endsWith("-"))) return false;
+
+    const suffix = domain.split(".").pop();
+    if (ASSET_SUFFIXES.has(suffix)) return false;
+    if (/sentry/i.test(local) || /(^|\.)sentry(\.|$)/i.test(domain)) return false;
 
     // Check ignored & disposable domains
-    if (DISPOSABLE_DOMAINS.has(domain) || IGNORED_DOMAINS.has(domain)) return false;
+    if (DISPOSABLE_DOMAINS.has(domain) || [...IGNORED_DOMAINS].some((ignored) => domain === ignored || domain.endsWith(`.${ignored}`))) return false;
 
     // Reject obvious placeholders
-    const local = parts[0];
     if (["test", "sample", "yourname", "name", "email", "username", "john.doe"].includes(local)) return false;
 
     return true;
@@ -83,7 +92,16 @@ const validator = {
    */
   extractEmails(text) {
     if (!text || typeof text !== "string") return [];
-    const matches = [...text.matchAll(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g)];
+    const normalizedText = text
+      .replace(/&commat;|&#0*64;|&#x0*40;/gi, "@")
+      .replace(/&period;|&#0*46;|&#x0*2e;/gi, ".")
+      .replace(/%40/gi, "@")
+      .replace(/%2e/gi, ".")
+      .replace(/\s*(?:\[at\]|\(at\)|\{at\})\s*/gi, "@")
+      .replace(/\s+at\s+/gi, "@")
+      .replace(/\s*(?:\[dot\]|\(dot\)|\{dot\})\s*/gi, ".")
+      .replace(/\s+dot\s+/gi, ".");
+    const matches = [...normalizedText.matchAll(EMAIL_PATTERN)];
     const valid = new Set();
 
     for (const match of matches) {

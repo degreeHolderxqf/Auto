@@ -88,6 +88,28 @@ const normalizer = {
     return null;
   },
 
+  normalizeCountryCode(country, fallback = "IN") {
+    const value = String(country || "").trim();
+    if (/^[A-Za-z]{2}$/.test(value)) return value.toUpperCase();
+    const codes = {
+      india: "IN",
+      "united states": "US",
+      usa: "US",
+      "united kingdom": "GB",
+      uk: "GB",
+      canada: "CA",
+      australia: "AU",
+      germany: "DE",
+      france: "FR",
+      singapore: "SG",
+      "united arab emirates": "AE",
+      uae: "AE",
+      netherlands: "NL",
+      "new zealand": "NZ"
+    };
+    return codes[value.toLowerCase()] || fallback;
+  },
+
   /**
    * Extract slug from a Shopify Partner directory URL
    */
@@ -95,6 +117,42 @@ const normalizer = {
     if (!shopifyUrl) return null;
     const match = shopifyUrl.match(/partners\/directory\/partner\/([a-zA-Z0-9_-]+)/);
     return match ? match[1].toLowerCase() : null;
+  },
+
+  /**
+   * Normalizes a job title for canonical ID generation.
+   * Removes common noise words, punctuation, and normalizes whitespace.
+   * e.g., "Senior Shopify Developer (Remote)" -> "senior shopify developer remote"
+   */
+  normalizeJobTitle(rawTitle) {
+    if (!rawTitle || typeof rawTitle !== "string") return "";
+    let cleaned = rawTitle.toLowerCase().trim();
+
+    // Remove text in parentheses, brackets, and braces
+    cleaned = cleaned.replace(/\s*\([^)]*\)\s*/g, " ");
+    cleaned = cleaned.replace(/\s*\[[^\]]*\]\s*/g, " ");
+    cleaned = cleaned.replace(/\s*\{[^}]*\}\s*/g, " ");
+
+    // Remove location/job type noise
+    const noise = [
+      /\bremote\b/gi, /\bhybrid\b/gi, /\bon-site\b/gi, /\b onsite\b/gi,
+      /\bpart-time\b/gi, /\bfull-time\b/gi, /\bcontract\b/gi, /\bfreelance\b/gi,
+      /\bsenior\b/gi, /\bjunior\b/gi, /\blead\b/gi, /\bstaff\b/gi,
+      /\bsr\.?\b/gi, /\bjr\.?\b/gi,
+      /\b-\s*\d+\s*years?\b/gi,
+      /\b\d+\+\s*years?\b/gi,
+    ];
+    noise.forEach((pattern) => {
+      cleaned = cleaned.replace(pattern, " ");
+    });
+
+    // Remove punctuation and symbols
+    cleaned = cleaned.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()\"'•]/g, " ");
+
+    // Collapse multiple whitespace
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+
+    return cleaned;
   }
 };
 
