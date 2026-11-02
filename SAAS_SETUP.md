@@ -4,7 +4,7 @@ The account foundation uses durable PostgreSQL and is intentionally disabled unt
 
 ## Configure and migrate
 
-1. Configure `DATABASE_URL` for the intended PostgreSQL database and `APP_PUBLIC_URL` for the public frontend origin. Production email links require an HTTPS origin.
+1. Configure `DATABASE_URL` for the intended PostgreSQL database and `APP_PUBLIC_URL` for the public frontend origin. For the Vercel serverless backend, copy Supabase's **Shared Pooler / Transaction** connection string from the project’s Connect dialog; do not use the direct `db.<project-ref>.supabase.co:5432` endpoint, which is IPv6-only unless the project has the IPv4 add-on. Use the exact pooler host and username shown by Supabase. Production email links require an HTTPS origin.
 2. Configure `SMTP_USER` and `SMTP_PASS` on the backend to enable email verification and password reset.
 3. Generate a long random `ADMIN_BOOTSTRAP_TOKEN`; set it only as a backend environment variable. Do not expose it through `NEXT_PUBLIC_*`.
 4. Generate a separate random `CRON_SECRET` and configure it in both the backend and Vercel so the scheduled email worker remains protected.

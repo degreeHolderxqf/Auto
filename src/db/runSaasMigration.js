@@ -1,3 +1,4 @@
+require("../config");
 const { getSaasPool, runSaasMigration } = require("./saasDatabase");
 
 async function main() {
