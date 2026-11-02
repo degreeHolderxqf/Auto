@@ -20,10 +20,5 @@
       "path": "/api/email/batch/worker",
       "schedule": "* * * * *"
     }
-  ],
-  "functions": {
-    "src/server.cjs": {
-      "maxDuration": 300
-    }
-  }
+  ]
 }
