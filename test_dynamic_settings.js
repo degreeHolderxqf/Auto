@@ -3,9 +3,18 @@
  */
 
 const assert = require("assert");
+process.env.DATABASE_PATH = ":memory:";
 const settingsService = require("./src/services/settingsService");
 const emailGenerator = require("./src/services/emailGenerator");
 const db = require("./src/db/database");
+
+db.saveAllSettings({
+  candidateName: "Himanshu Soni",
+  candidateRole: "Shopify Developer",
+  candidateExperience: "3 years",
+  smtpHost: "smtp.test.local",
+  minEmployeeCount: null
+});
 
 async function runSettingsTests() {
   console.log("\n=======================================================");

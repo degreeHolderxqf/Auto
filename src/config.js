@@ -119,6 +119,11 @@ const config = {
   revenueEstimateRefreshDays: Math.max(1, Math.min(parseInt(process.env.REVENUE_ESTIMATE_REFRESH_DAYS || "30", 10), 365)),
   revenueFailureRetryHours: Math.max(1, Math.min(parseInt(process.env.REVENUE_FAILURE_RETRY_HOURS || "24", 10), 168)),
 
+  // Merchant performance audits use free-quota Google APIs and are opt-in.
+  pageSpeedApiKey: process.env.PAGESPEED_API_KEY || "",
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+
   // Remote Job Discovery Settings (Additive Only)
   // autoApplyDefault MUST default to OFF (human-in-the-loop for every submission)
   remoteJobDiscoveryEnabled: process.env.REMOTE_JOB_DISCOVERY_ENABLED !== "false",

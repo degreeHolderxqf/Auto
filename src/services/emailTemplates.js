@@ -3,7 +3,7 @@ const path = require("node:path");
 
 const TEMPLATE_FILE = path.resolve(__dirname, "../../templates/email-templates.json");
 const ACTIVE_TEMPLATE_FILE = path.resolve(__dirname, "../../templates/active-email-template.json");
-const PORTFOLIO_URL = "https://himanshusoni-lilac.vercel.app/";
+const PORTFOLIO_URL = "https://himansusoni-lilac.vercel.app/";
 const DEFAULT_ACTIVE_TEMPLATE_ID = "freelancingStores";
 
 const TEMPLATE_DEFINITIONS = Object.freeze({
@@ -29,8 +29,8 @@ const TEMPLATE_DEFINITIONS = Object.freeze({
 
 const DEFAULT_CONTENT = Object.freeze({
   freelancingStores: Object.freeze({
-    subject: "A lighter custom feature for {{store_name}}",
-    body: `Hi there,\n\nI came across {{store_name}} and wanted to reach out. If your team is paying for third-party apps to cover store features that could live directly in the theme, I can help replace the slow or expensive pieces with clean, maintainable custom Liquid functionality.\n\nI am a full-stack developer focused on Shopify, custom Liquid, React, Remix, GraphQL, Node.js, and Shopify Admin APIs. I have delivered 50+ custom Shopify stores and focus on improving the storefront without adding unnecessary app overhead.\n\nIf you have one feature in mind, send it over and I can suggest whether a custom build would be a good fit. You can see examples of my work here: ${PORTFOLIO_URL}\n\nWould a short conversation next week be useful?\n\nBest,\nHimanshu\nShopify Full-Stack Developer`
+    subject: "Shopify improvements for {{store_name}}",
+    body: `Hi {{store_name}} Team,\n\nI came across your store and noticed a few opportunities to improve its performance, user experience, and overall shopping journey.\n\nI'm a freelance Shopify developer specializing in custom theme development, store improvements, speed optimization, and conversion-focused enhancements.\n\nI'd love to share a few ideas tailored to your store and help you implement improvements that make sense for your business.\n\nWould you be open to a quick conversation?\n\nPortfolio: ${PORTFOLIO_URL}\n\nBest regards,\nHimanshu Soni\nFreelance Shopify Developer | Performance, UX & CRO`
   }),
   appDevelopers: Object.freeze({
     subject: "Extra Shopify app development capacity for {{app_name}}",

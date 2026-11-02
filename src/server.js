@@ -9,6 +9,12 @@ const outreachEmailGenerator = require("./services/outreachEmailGenerator");
 const emailTemplates = require("./services/emailTemplates");
 const emailSender = require("./services/emailSender");
 const { handleEmailTemplateRoute } = require("./api/emailTemplateRoutes");
+const { handleStorePerformanceAuditRoute } = require("./api/storePerformanceAuditRoutes");
+const {
+  authenticateLegacyRequest,
+  authorizeCronRequest,
+  handleSaasAuthRoute
+} = require("./api/saasAuthRoutes");
 const resumeStorage = require("./services/resumeStorage");
 const exportService = require("./services/exportService");
 const { runDiscovery } = require("./workflows/discoverWorkflow");
@@ -92,7 +98,6 @@ function normalizeErrorValue(value) {
 function sendJson(res, statusCode, data) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
     "Access-Control-Max-Age": "86400"
@@ -162,13 +167,11 @@ function startServer(port = process.env.PORT || 3000) {
     const pathname = url.pathname;
 
     // CORS preflight
-    res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin, X-Requested-With");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204, {
-        "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
         "Access-Control-Max-Age": "86400"
@@ -178,7 +181,17 @@ function startServer(port = process.env.PORT || 3000) {
     }
 
     try {
+      if (await handleSaasAuthRoute(req, res, pathname, { parseBody, sendJson })) return;
+
+      const isCronWorker = pathname === "/api/email/batch/worker" && req.method === "POST";
+      if (isCronWorker) {
+        if (!authorizeCronRequest(req) && !await authenticateLegacyRequest(req, res, sendJson)) return;
+      } else if (pathname !== "/health" && !await authenticateLegacyRequest(req, res, sendJson)) {
+        return;
+      }
+
       if (await handleEmailTemplateRoute(req, res, pathname, { parseBody, sendJson, sendError })) return;
+      if (await handleStorePerformanceAuditRoute(req, res, pathname, { parseBody, sendJson, sendError })) return;
 
       // 1. Health Check
       if (pathname === "/health") {
@@ -785,9 +798,7 @@ function startServer(port = process.env.PORT || 3000) {
 
       // ── NEW: Batch Worker / Cron Endpoint ────────────────────────────────
       // POST /api/email/batch/worker
-      // Designed for Vercel Cron (vercel.json) to keep batches running across
-      // invocations. No authentication needed — it's an internal endpoint that
-      // only resumes existing batches, never creates new ones.
+      // Designed for Vercel Cron. Requests require CRON_SECRET or an admin session.
       // Add to vercel.json:
       //   { "path": "/api/email/batch/worker", "schedule": "* * * * *" }
       if (pathname === "/api/email/batch/worker" && req.method === "POST") {

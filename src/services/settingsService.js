@@ -45,48 +45,54 @@ class SettingsService {
    * each user's authenticated record, not from env vars.
    */
   getDefaults() {
-    return {
-      // 1. Candidate / User Profile — all user-specific, default to empty
-      candidateName: process.env.CANDIDATE_NAME || "",
-      candidateRole: process.env.CANDIDATE_ROLE || "",
-      candidateExperience: process.env.CANDIDATE_EXPERIENCE || "",
-      candidateEmail: process.env.CANDIDATE_EMAIL || "",
-      candidatePhone: process.env.CANDIDATE_PHONE || "",
-      candidateSkills: [],
-      resumeFilename: process.env.CANDIDATE_NAME ? `${process.env.CANDIDATE_NAME.replace(/\s+/g, "-")}-Resume.pdf` : "",
-      resumePath: config.resumePath,
+    const readPositiveInt = (rawValue, fallback) => {
+      const parsed = Number.parseInt(rawValue, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    };
 
-      // 2. SMTP Server Configuration — user-specific, default to empty
-      smtpHost: process.env.SMTP_HOST || "",
-      smtpPort: parseInt(process.env.SMTP_PORT || "587", 10),
+    return {
+      // 1. Candidate / User Profile — all user-specific, default to empty.
+      // Never prefill from a developer's local .env or machine profile.
+      candidateName: "",
+      candidateRole: "",
+      candidateExperience: "",
+      candidateEmail: "",
+      candidatePhone: "",
+      candidateSkills: [],
+      resumeFilename: "",
+      resumePath: "",
+
+      // 2. SMTP Server Configuration — user-specific, default to empty.
+      smtpHost: "",
+      smtpPort: readPositiveInt(process.env.SMTP_PORT, 587),
       smtpSecure: process.env.SMTP_SECURE === "true",
-      smtpUser: process.env.SMTP_USER || "",
+      smtpUser: "",
       smtpPass: "",
-      emailFrom: process.env.EMAIL_FROM || "",
+      emailFrom: "",
 
       // 3. Lead Discovery & Targeting — global defaults, safe to pre-fill
       shopifyDirectoryUrl: process.env.SHOPIFY_PARTNER_DIRECTORY_URL || "https://www.shopify.com/in/partners/directory/locations/india?minPrice=&maxPrice=&sort=AVERAGE_RATING",
       targetCountry: process.env.TARGET_COUNTRY || "India",
-      targetLeads: parseInt(process.env.TARGET_LEADS || "100", 10),
-      minAppRelevanceScore: parseInt(process.env.MIN_APP_RELEVANCE_SCORE || "70", 10),
+      targetLeads: readPositiveInt(process.env.TARGET_LEADS, 100),
+      minAppRelevanceScore: readPositiveInt(process.env.MIN_APP_RELEVANCE_SCORE, 70),
 
       // 4. Employee Size Verification (Optional)
       minEmployeeCount: config.minEmployeeCount !== undefined ? config.minEmployeeCount : null,
 
       // 5. Safety & Sending Controls — global defaults
       dryRun: config.dryRun !== undefined ? config.dryRun : true,
-      sendLimit: parseInt(process.env.SEND_LIMIT || "50", 10),
-      emailDelayMs: parseInt(process.env.EMAIL_DELAY_MS || "5000", 10),
-      batchSize: parseInt(process.env.BATCH_SIZE || "10", 10),
-      batchDelayMs: parseInt(process.env.BATCH_DELAY_MS || "60000", 10),
+      sendLimit: readPositiveInt(process.env.SEND_LIMIT, 50),
+      emailDelayMs: readPositiveInt(process.env.EMAIL_DELAY_MS, 5000),
+      batchSize: readPositiveInt(process.env.BATCH_SIZE, 10),
+      batchDelayMs: readPositiveInt(process.env.BATCH_DELAY_MS, 60000),
 
       // 6. Evolution API WhatsApp Settings — user-specific, default to empty
-      evolutionApiUrl: process.env.EVOLUTION_API_URL || "",
+      evolutionApiUrl: "",
       evolutionApiKey: "",
-      evolutionInstanceName: process.env.EVOLUTION_INSTANCE_NAME || "",
+      evolutionInstanceName: "",
       whatsAppEnabled: config.evolution.enabled !== undefined ? config.evolution.enabled : true,
       whatsAppDryRun: config.evolution.dryRun !== undefined ? config.evolution.dryRun : true,
-      whatsAppDelayMs: parseInt(process.env.WHATSAPP_DELAY_MS || "15000", 10),
+      whatsAppDelayMs: readPositiveInt(process.env.WHATSAPP_DELAY_MS, 15000),
 
       // 7. Remote Job Discovery Settings (Additive Only) — global defaults, safe to pre-fill
       // autoApplyDefault MUST default to OFF (human-in-the-loop for every submission)
@@ -120,13 +126,25 @@ class SettingsService {
       ...defaults,
       ...dbOverrides
     };
+    const employeeThresholdConfigured =
+      dbOverrides.minEmployeeCountConfigured === true ||
+      dbOverrides.minEmployeeCountConfigured === "true";
+    delete merged.minEmployeeCountConfigured;
 
     // Legacy migration: previously the system defaulted employee verification to 30.
     // Keep the feature off unless the user explicitly enables it again.
-    if ((merged.minEmployeeCount === 30 || merged.minEmployeeCount === "30") && process.env.MIN_EMPLOYEE_COUNT === undefined && process.env.MIN_EMPLOYEES === undefined) {
+    const rawEmployeeThreshold = process.env.MIN_EMPLOYEE_COUNT !== undefined
+      ? process.env.MIN_EMPLOYEE_COUNT
+      : process.env.MIN_EMPLOYEES;
+    const environmentThreshold = Number.parseInt(String(rawEmployeeThreshold || ""), 10);
+    if (
+      (merged.minEmployeeCount === 30 || merged.minEmployeeCount === "30") &&
+      !employeeThresholdConfigured &&
+      (!Number.isFinite(environmentThreshold) || environmentThreshold <= 0)
+    ) {
       merged.minEmployeeCount = null;
       try {
-        db.saveSetting("minEmployeeCount", null);
+        db.saveSetting("minEmployeeCount", "null");
       } catch {
         // DB may not be ready yet; ignore and keep runtime off
       }
@@ -161,7 +179,12 @@ class SettingsService {
 
     // Normalize minEmployeeCount (null / 0 / false means disabled)
     if (merged.minEmployeeCount !== null && merged.minEmployeeCount !== undefined) {
-      if (String(merged.minEmployeeCount).toLowerCase() === "false" || merged.minEmployeeCount === 0 || merged.minEmployeeCount === "0") {
+      if (
+        String(merged.minEmployeeCount).trim() === "" ||
+        String(merged.minEmployeeCount).toLowerCase() === "false" ||
+        merged.minEmployeeCount === 0 ||
+        merged.minEmployeeCount === "0"
+      ) {
         merged.minEmployeeCount = null;
       } else {
         merged.minEmployeeCount = parseInt(merged.minEmployeeCount, 10);
@@ -238,6 +261,9 @@ class SettingsService {
 
     // Save to DB
     db.saveAllSettings(updated);
+    if (Object.prototype.hasOwnProperty.call(newSettings, "minEmployeeCount")) {
+      db.saveSetting("minEmployeeCountConfigured", true);
+    }
 
     // Sync in-memory config
     this.syncConfig(updated);

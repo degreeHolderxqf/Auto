@@ -1,0 +1,411 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 4926 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (pH Neutral Hair Color India | Ammonia-Free & PPD-Free | Sacred Herbs  |  sacredherbs.in) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 17:23:47) Tj ET
+0.1 0.13 0.18 rg
+BT /F2 18 Tf 42 724 Td (Store performance and conversion review) Tj ET
+0.17 0.2 0.25 rg
+BT /F2 10 Tf 42 696 Td (Website: https://www.sacredherbs.in/) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 682 Td (Audit date: 2026-10-28T17:24:17.962Z | Scope: PARTIAL ? limited page coverage) Tj ET
+0.72 0.12 0.12 rg
+36 616 540 42 re f
+1 1 1 rg
+BT /F2 10 Tf 48 642 Td (POOR - ATTENTION REQUIRED | Performance score: 26/100) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 598 Td (EXECUTIVE SUMMARY) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 577 Td (The inspection reviewed 1 publicly accessible page\(s\) including the homepage. Verified) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 564 Td (observations include largest contentful paint and first contentful paint. 1 item\(s\)) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 551 Td (require manual or browser-based verification before being treated as confirmed issues. The) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 538 Td (limited page coverage means product- and collection-level conclusions are incomplete.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 516 Td (AUDIT SCOPE) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 495 Td (Pages inspected) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 481 Td (Homepage: https://www.sacredherbs.in/) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 464 Td (Pages not inspected) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 450 Td (https://www.sacredherbs.in/products/herbasafe-hypo-allergic-herbal-hair-color \(Page) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 437 Td (returned HTTP 429 or was not HTML.\) |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 424 Td (https://www.sacredherbs.in/products/herbal-fusion-bath-and-body-gift-set \(Page returned) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 411 Td (HTTP 429 or was not HTML.\) |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 398 Td (https://www.sacredherbs.in/collections/hair-color/products/damage-free-ph-neutral-gel-colour-available-in-5-shades-value-pack-awesome-quantity-test) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 385 Td (\(Page returned HTTP 429 or was not HTML.\) |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 372 Td (https://www.sacredherbs.in/collections/hair-color/products/sacred-herbs%C2%AE-damage-free-ph-neutral-gel-colour-dark-brown-3-00) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 359 Td (\(Page returned HTTP 429 or was not HTML.\) |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 346 Td (https://www.sacredherbs.in/collections/hair-color \(Page returned HTTP 429 or was not) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 333 Td (HTML.\) | https://www.sacredherbs.in/collections/hair-care \(Page returned HTTP 429 or was) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 320 Td (not HTML.\) | https://www.sacredherbs.in/collections/shampoo-conditioner \(Page returned) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 307 Td (HTTP 429 or was not HTML.\) | https://www.sacredherbs.in/pages/about-us \(Page returned HTTP) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 294 Td (429 or was not HTML.\) | https://www.sacredherbs.in/pages/faq \(Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 281 Td (was not HTML.\) | https://www.sacredherbs.in/pages/privacy-policy \(Page returned HTTP 429) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 268 Td (or was not HTML.\) | https://www.sacredherbs.in/pages/refund-policy \(Page returned HTTP 429) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 255 Td (or was not HTML.\)) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 238 Td (Inspection limits) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 224 Td (Only the homepage was available for inspection; product and collection conclusions are) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 211 Td (limited. 11 discovered page\(s\) could not be inspected; see scope notes. Inspection is) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 198 Td (limited to publicly returned HTML. JavaScript-only content, logged-in experiences,) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 185 Td (checkout, and payment behavior were not tested.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 164 Td (PERFORMANCE MEASUREMENTS) Tj ET
+0.17 0.2 0.25 rg
+BT /F2 9 Tf 42 143 Td (PageSpeed score: 26/100 \(POOR - ATTENTION REQUIRED\)) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 130 Td (First Contentful Paint: 6.4?s) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 117 Td (Largest Contentful Paint: 65.2?s) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 104 Td (Total Blocking Time: 3,670?ms) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 91 Td (Cumulative Layout Shift: 0) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 3691 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (pH Neutral Hair Color India | Ammonia-Free & PPD-Free | Sacred Herbs  |  sacredherbs.in) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 17:23:47) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 724 Td (Speed Index: 19.6?s) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 711 Td (Source: Google PageSpeed Insights / Lighthouse. Results vary between runs and network) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 699 Td (conditions.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 678 Td (ISSUE OVERVIEW) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 657 Td (6 evidence-based finding\(s\): 0 critical, 4 high, 1 medium, 1 low. 1 item\(s\) need) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 644 Td (additional verification.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 621 Td (RECOMMENDED FIRST STEPS) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 600 Td (1. Largest Contentful Paint) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 585 Td (2. First Contentful Paint) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 570 Td (3. Speed Index) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 551 Td (PERFORMANCE & TECHNICAL) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 530 Td (Largest Contentful Paint | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 513 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 499 Td (Largest Contentful Paint measured 65.2 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 482 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 468 Td (https://www.sacredherbs.in/: 65.2?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 451 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 437 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 424 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 407 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 393 Td (I can review the page's critical rendering path and prioritize the largest above-the-fold) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 380 Td (content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 363 Td (Verification: verified | Confidence: high) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 344 Td (First Contentful Paint | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 327 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 313 Td (First Contentful Paint measured 6.4 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 296 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 282 Td (https://www.sacredherbs.in/: 6.4?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 265 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 251 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 238 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 221 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 207 Td (I can review the critical CSS and initial theme requests to identify what delays the first) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 194 Td (visible content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 177 Td (Verification: verified | Confidence: high) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 4078 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (pH Neutral Hair Color India | Ammonia-Free & PPD-Free | Sacred Herbs  |  sacredherbs.in) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 17:23:47) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 724 Td (Speed Index | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 707 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 693 Td (Speed Index measured 19.6 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 676 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 662 Td (https://www.sacredherbs.in/: 19.6?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 645 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 631 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 618 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 601 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 587 Td (I can inspect the storefront's critical rendering path and prioritize the assets that) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 574 Td (delay visible content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 557 Td (Verification: verified | Confidence: high) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 538 Td (Total Blocking Time | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 521 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 507 Td (Total Blocking Time measured 3.7 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 490 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 476 Td (https://www.sacredherbs.in/: 3,670?ms ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 459 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 445 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 432 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 415 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 401 Td (I can inspect theme and third-party scripts and identify non-critical work that can be) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 388 Td (deferred.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 371 Td (Verification: verified | Confidence: high) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 348 Td (MOBILE USABILITY & ACCESSIBILITY) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 327 Td (Some images lack alternative text | MEDIUM PRIORITY | Effort: 30?60 minutes per affected) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 313 Td (template) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 296 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 282 Td (78 of 167 inspected image\(s\) had no non-empty alt text.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 265 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 251 Td (https://www.sacredherbs.in/: 78 of 167 <img> elements had missing or blank alt attributes.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 234 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 220 Td (Meaningful product and promotional images may be less understandable to screen-reader) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 207 Td (users.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 190 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 176 Td (Add concise, accurate alt text to informative images; use empty alt text only for) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 163 Td (decorative images.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 146 Td (Verification: verified | Confidence: medium) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 123 Td (AUDIT SCOPE) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 3832 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (pH Neutral Hair Color India | Ammonia-Free & PPD-Free | Sacred Herbs  |  sacredherbs.in) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 17:23:47) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 724 Td (Some discovered pages could not be inspected | LOW PRIORITY | Effort: Needs verification) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 707 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 693 Td (11 page\(s\) were discovered but not inspected.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 676 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 662 Td (https://www.sacredherbs.in/products/herbasafe-hypo-allergic-herbal-hair-color: Page) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 649 Td (returned HTTP 429 or was not HTML. |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 636 Td (https://www.sacredherbs.in/products/herbal-fusion-bath-and-body-gift-set: Page returned) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 623 Td (HTTP 429 or was not HTML. |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 610 Td (https://www.sacredherbs.in/collections/hair-color/products/damage-free-ph-neutral-gel-colour-available-in-5-shades-value-pack-awesome-quantity-test:) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 597 Td (Page returned HTTP 429 or was not HTML. |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 584 Td (https://www.sacredherbs.in/collections/hair-color/products/sacred-herbs%C2%AE-damage-free-ph-neutral-gel-colour-dark-brown-3-00:) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 571 Td (Page returned HTTP 429 or was not HTML. |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 558 Td (https://www.sacredherbs.in/collections/hair-color: Page returned HTTP 429 or was not HTML.) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 545 Td (| https://www.sacredherbs.in/collections/hair-care: Page returned HTTP 429 or was not) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 532 Td (HTML.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 515 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 501 Td (The audit may not cover all store templates and customer-facing policies.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 484 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 470 Td (Review the scope notes and inspect inaccessible pages manually before making changes.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 453 Td (Verification: needs_verification | Confidence: high) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 430 Td (LIMITATIONS AND VERIFICATION NOTES) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 409 Td (- Only the homepage was available for inspection; product and collection conclusions are) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 396 Td (limited.) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 380 Td (- 11 discovered page\(s\) could not be inspected; see scope notes.) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 364 Td (- Inspection is limited to publicly returned HTML. JavaScript-only content, logged-in) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 351 Td (experiences, checkout, and payment behavior were not tested.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 335 Td (Disclaimer: This audit is based on publicly accessible website information and diagnostic) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 323 Td (results available at the time of analysis. Some findings may require additional) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 311 Td (verification or merchant account access. Recommendations support prioritization and do not) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 299 Td (guarantee specific business or performance outcomes.) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+xref
+0 13
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000000279 00000 n 
+0000000415 00000 n 
+0000005393 00000 n 
+0000005529 00000 n 
+0000009272 00000 n 
+0000009409 00000 n 
+0000013540 00000 n 
+0000013678 00000 n 
+trailer
+<< /Size 13 /Root 1 0 R >>
+startxref
+17563
+%%EOF

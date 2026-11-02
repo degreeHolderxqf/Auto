@@ -1,0 +1,505 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R] /Count 5 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 6 0 R >>
+endobj
+6 0 obj
+<< /Length 4520 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Primally Pure  |  primallypure.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 18:52:31) Tj ET
+0.1 0.13 0.18 rg
+BT /F2 18 Tf 42 724 Td (Store performance and conversion review) Tj ET
+0.17 0.2 0.25 rg
+BT /F2 10 Tf 42 696 Td (Website: https://primallypure.com/) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 682 Td (Audit date: 2026-10-28T18:53:12.882Z | Scope: EVIDENCE-BASED ? some checks need) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 669 Td (verification) Tj ET
+0.72 0.12 0.12 rg
+36 603 540 42 re f
+1 1 1 rg
+BT /F2 10 Tf 48 629 Td (POOR - ATTENTION REQUIRED | Performance score: 27/100) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 585 Td (EXECUTIVE SUMMARY) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 564 Td (The inspection reviewed 3 publicly accessible page\(s\) including the homepage. Verified) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 551 Td (observations include largest contentful paint and first contentful paint. 3 item\(s\)) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 538 Td (require manual or browser-based verification before being treated as confirmed issues.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 516 Td (AUDIT SCOPE) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 495 Td (Pages inspected) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 481 Td (Homepage: https://primallypure.com/ | Product:) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 468 Td (https://primallypure.com/products/holiday-home-collection | Collection:) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 455 Td (https://primallypure.com/collections/recently-launched-products) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 438 Td (Pages not inspected) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 424 Td (https://primallypure.com/products/jelly-to-milk-cleanser \(Page returned HTTP 429 or was) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 411 Td (not HTML.\) | https://primallypure.com/products/jet-set-travel-bundle \(Page returned HTTP) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 398 Td (429 or was not HTML.\) | https://primallypure.com/products/the-starter-kit \(Page returned) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 385 Td (HTTP 429 or was not HTML.\) |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 372 Td (https://primallypure.com/collections/primally-pure-best-sellers \(Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 359 Td (was not HTML.\) | https://primallypure.com/collections/bundles \(Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 346 Td (was not HTML.\) | https://primallypure.com/pages/about-us \(Page returned HTTP 429 or was) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 333 Td (not HTML.\) | https://primallypure.com/pages/returns-exchanges \(Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 320 Td (was not HTML.\) | https://primallypure.com/pages/faq \(Page returned HTTP 429 or was not) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 307 Td (HTML.\) | https://primallypure.com/pages/contact \(Page returned HTTP 429 or was not HTML.\)) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 290 Td (Inspection limits) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 276 Td (9 discovered page\(s\) could not be inspected; see scope notes. Inspection is limited to) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 263 Td (publicly returned HTML. JavaScript-only content, logged-in experiences, checkout, and) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 250 Td (payment behavior were not tested.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 229 Td (PERFORMANCE MEASUREMENTS) Tj ET
+0.17 0.2 0.25 rg
+BT /F2 9 Tf 42 208 Td (PageSpeed score: 27/100 \(POOR - ATTENTION REQUIRED\)) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 195 Td (First Contentful Paint: 3.2?s) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 182 Td (Largest Contentful Paint: 20.8?s) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 169 Td (Total Blocking Time: 2,170?ms) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 156 Td (Cumulative Layout Shift: 0.124) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 143 Td (Speed Index: 14.0?s) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 130 Td (Source: Google PageSpeed Insights / Lighthouse. Results vary between runs and network) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 118 Td (conditions.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 97 Td (ISSUE OVERVIEW) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 8 0 R >>
+endobj
+8 0 obj
+<< /Length 4253 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Primally Pure  |  primallypure.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 18:52:31) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 724 Td (9 evidence-based finding\(s\): 0 critical, 5 high, 1 medium, 3 low. 3 item\(s\) need) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 711 Td (additional verification.) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 688 Td (RECOMMENDED FIRST STEPS) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 667 Td (1. Largest Contentful Paint) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 652 Td (2. First Contentful Paint) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 637 Td (3. Speed Index) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 618 Td (PERFORMANCE & TECHNICAL) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 597 Td (Largest Contentful Paint | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 580 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 566 Td (Largest Contentful Paint measured 20.8 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 549 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 535 Td (https://primallypure.com/: 20.8?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 518 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 504 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 491 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 474 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 460 Td (I can review the page's critical rendering path and prioritize the largest above-the-fold) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 447 Td (content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 430 Td (Verification: verified | Confidence: high) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 411 Td (First Contentful Paint | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 394 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 380 Td (First Contentful Paint measured 3.2 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 363 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 349 Td (https://primallypure.com/: 3.2?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 332 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 318 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 305 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 288 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 274 Td (I can review the critical CSS and initial theme requests to identify what delays the first) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 261 Td (visible content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 244 Td (Verification: verified | Confidence: high) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 225 Td (Speed Index | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 208 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 194 Td (Speed Index measured 14.0 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 177 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 163 Td (https://primallypure.com/: 14.0?s ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 146 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 132 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 119 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 102 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 88 Td (I can inspect the storefront's critical rendering path and prioritize the assets that) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 10 0 R >>
+endobj
+10 0 obj
+<< /Length 4249 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Primally Pure  |  primallypure.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 18:52:31) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 724 Td (delay visible content.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 707 Td (Verification: verified | Confidence: high) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 688 Td (Total Blocking Time | HIGH PRIORITY | Effort: Needs technical review) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 671 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 657 Td (Total Blocking Time measured 2.2 s in the mobile PageSpeed audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 640 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 626 Td (https://primallypure.com/: 2,170?ms ? Google PageSpeed Insights / Lighthouse) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 609 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 595 Td (Slow or unstable rendering can make product discovery and purchase interactions less) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 582 Td (comfortable, particularly on mobile connections.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 565 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 551 Td (I can inspect theme and third-party scripts and identify non-critical work that can be) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 538 Td (deferred.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 521 Td (Verification: verified | Confidence: high) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 498 Td (PRODUCT PAGES) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 477 Td (Add-to-cart control was not detected in returned HTML | HIGH PRIORITY | Effort: Needs) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 463 Td (verification) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 446 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 432 Td (The inspected HTML did not contain a recognizable add-to-cart form or button.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 415 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 401 Td (https://primallypure.com/products/holiday-home-collection: No recognized /cart/add form or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 388 Td (add-to-cart button selector was detected.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 371 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 357 Td (If shoppers cannot find the purchase action, the product page may not support a clear) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 344 Td (buying journey.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 327 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 313 Td (Verify the add-to-cart control is visible, labeled, and usable on desktop and mobile; this) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 300 Td (audit did not submit a cart action.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 283 Td (Verification: needs_verification | Confidence: low) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 260 Td (MOBILE USABILITY & ACCESSIBILITY) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 239 Td (Some images lack alternative text | MEDIUM PRIORITY | Effort: 30?60 minutes per affected) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 225 Td (template) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 208 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 194 Td (2 of 76 inspected image\(s\) had no non-empty alt text.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 177 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 163 Td (https://primallypure.com/: 2 of 76 <img> elements had missing or blank alt attributes. |) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 150 Td (https://primallypure.com/products/holiday-home-collection: 1 of 52 <img> elements had) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 137 Td (missing or blank alt attributes.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 120 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 106 Td (Meaningful product and promotional images may be less understandable to screen-reader) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 93 Td (users.) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 12 0 R >>
+endobj
+12 0 obj
+<< /Length 4238 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Primally Pure  |  primallypure.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 18:52:31) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 724 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 710 Td (Add concise, accurate alt text to informative images; use empty alt text only for) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 697 Td (decorative images.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 680 Td (Verification: verified | Confidence: medium) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 657 Td (SEO & SEARCH VISIBILITY) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 636 Td (Multiple primary headings were detected | LOW PRIORITY | Effort: 30?60 minutes) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 619 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 605 Td (2 H1 headings were detected on this page.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 588 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 574 Td (https://primallypure.com/: Detected headings: Bundle Up Your Barrier | Bundle Up Your) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 561 Td (Barrier) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 544 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 530 Td (A clear heading hierarchy makes page structure easier to understand and maintain.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 513 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 499 Td (Review the heading hierarchy and use one clear page-level heading, with subsequent) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 486 Td (headings nested by section.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 469 Td (Verification: verified | Confidence: medium) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 446 Td (TRUST & POLICIES) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 425 Td (Contact information was not detected in the inspected pages | LOW PRIORITY | Effort: Needs) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 411 Td (verification) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 394 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 380 Td (A contact page or clear contact information was not detected in the pages inspected by) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 367 Td (this audit.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 350 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 336 Td (https://primallypure.com/: No contact page link or matching text was detected in the) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 323 Td (inspected pages.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 306 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 292 Td (Shoppers may need to search for this information before deciding whether to purchase.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 275 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 261 Td (Confirm that the contact information is available and link to it from the site navigation) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 248 Td (or relevant product pages.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 231 Td (Verification: needs_verification | Confidence: low) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 208 Td (AUDIT SCOPE) Tj ET
+0.45 0.14 0.12 rg
+BT /F2 10 Tf 42 187 Td (Some discovered pages could not be inspected | LOW PRIORITY | Effort: Needs verification) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 170 Td (WHAT WAS OBSERVED) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 156 Td (9 page\(s\) were discovered but not inspected.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 139 Td (EVIDENCE) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 125 Td (https://primallypure.com/products/jelly-to-milk-cleanser: Page returned HTTP 429 or was) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 112 Td (not HTML. | https://primallypure.com/products/jet-set-travel-bundle: Page returned HTTP) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 99 Td (429 or was not HTML. | https://primallypure.com/products/the-starter-kit: Page returned) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 86 Td (HTTP 429 or was not HTML. |) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 14 0 R >>
+endobj
+14 0 obj
+<< /Length 2399 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 15 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE & CRO AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Primally Pure  |  primallypure.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (MOBILE PageSpeed run  |  2026-10-28 18:52:31) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 724 Td (https://primallypure.com/collections/primally-pure-best-sellers: Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 711 Td (was not HTML. | https://primallypure.com/collections/bundles: Page returned HTTP 429 or) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 698 Td (was not HTML. | https://primallypure.com/pages/about-us: Page returned HTTP 429 or was not) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 685 Td (HTML.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 668 Td (WHY IT MAY MATTER) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 654 Td (The audit may not cover all store templates and customer-facing policies.) Tj ET
+0.2 0.24 0.3 rg
+BT /F2 9 Tf 42 637 Td (RECOMMENDATION) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 623 Td (Review the scope notes and inspect inaccessible pages manually before making changes.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 606 Td (Verification: needs_verification | Confidence: high) Tj ET
+0.1 0.31 0.5 rg
+BT /F2 12 Tf 42 583 Td (LIMITATIONS AND VERIFICATION NOTES) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 562 Td (- 9 discovered page\(s\) could not be inspected; see scope notes.) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 546 Td (- Inspection is limited to publicly returned HTML. JavaScript-only content, logged-in) Tj ET
+0.17 0.2 0.25 rg
+BT /F1 9 Tf 42 533 Td (experiences, checkout, and payment behavior were not tested.) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 517 Td (Disclaimer: This audit is based on publicly accessible website information and diagnostic) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 505 Td (results available at the time of analysis. Some findings may require additional) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 493 Td (verification or merchant account access. Recommendations support prioritization and do not) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 8 Tf 42 481 Td (guarantee specific business or performance outcomes.) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 35 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 22 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+endstream
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000141 00000 n 
+0000000211 00000 n 
+0000000286 00000 n 
+0000000422 00000 n 
+0000004994 00000 n 
+0000005130 00000 n 
+0000009435 00000 n 
+0000009572 00000 n 
+0000013874 00000 n 
+0000014012 00000 n 
+0000018303 00000 n 
+0000018441 00000 n 
+trailer
+<< /Size 15 /Root 1 0 R >>
+startxref
+20893
+%%EOF

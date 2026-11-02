@@ -1353,6 +1353,7 @@ const db = {
       excludedOrTooLow,
       duplicates,
       employeeVerified,
+      minEmployeeCount: threshold && threshold > 0 ? threshold : null,
       employeeTooLow,
       employeeUncertain,
       employeeConflicting,
@@ -1809,6 +1810,13 @@ const db = {
     const existing = contactData.email
       ? database.prepare("SELECT * FROM freelance_contacts WHERE email = ?").get(contactData.email)
       : null;
+    const normalizedWhatsappAvailable = typeof contactData.whatsapp_available === "boolean"
+      ? (contactData.whatsapp_available ? "true" : "false")
+      : (typeof contactData.whatsapp_available === "string"
+        ? contactData.whatsapp_available.toLowerCase()
+        : (contactData.whatsapp_available || "unknown"));
+    const normalizedVerified = contactData.verified ? 1 : 0;
+    const normalizedMxValid = contactData.mx_valid ? 1 : 0;
 
     if (existing) {
       const stmt = database.prepare(`
@@ -1846,11 +1854,11 @@ const db = {
         contactData.phone_type || null,
         contactData.phone_source || null,
         contactData.phone_source_url || null,
-        contactData.whatsapp_available || null,
+        normalizedWhatsappAvailable,
         contactData.whatsapp_status || null,
         contactData.source_url || null,
-        contactData.verified ? 1 : 0,
-        contactData.mx_valid ? 1 : 0,
+        normalizedVerified,
+        normalizedMxValid,
         contactData.notes || null,
         existing.id
       );
@@ -1882,10 +1890,10 @@ const db = {
         contactData.phone_type || null,
         contactData.phone_source || null,
         contactData.phone_source_url || null,
-        typeof contactData.whatsapp_available === "boolean" ? (contactData.whatsapp_available ? "true" : "false") : (contactData.whatsapp_available || "unknown"),
+        normalizedWhatsappAvailable,
         contactData.whatsapp_status || "READY",
-        contactData.verified ? 1 : 0,
-        contactData.mx_valid ? 1 : 0,
+        normalizedVerified,
+        normalizedMxValid,
         contactData.notes || null
       );
 

@@ -1,0 +1,115 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+6 0 obj
+<< /Length 3180 >>
+stream
+0.1 0.13 0.18 rg
+0 744 612 98 re f
+1 1 1 rg
+BT /F2 16 Tf 42 810 Td (SHOPIFY STORE PERFORMANCE AUDIT) Tj ET
+0.88 0.91 0.95 rg
+BT /F1 10 Tf 42 787 Td (Cratus Store  |  cratuscart.com) Tj ET
+0.75 0.8 0.87 rg
+BT /F1 9 Tf 42 768 Td (Google PageSpeed Insights  |  MOBILE  |  2026-10-27 16:43:56) Tj ET
+0.72 0.12 0.12 rg
+36 676 540 54 re f
+1 1 1 rg
+BT /F2 13 Tf 52 708 Td (POOR - ATTENTION REQUIRED) Tj ET
+1 1 1 rg
+BT /F2 11 Tf 52 687 Td (Performance score: 39/100) Tj ET
+1 1 1 rg
+BT /F1 9 Tf 396 687 Td (Single test result) Tj ET
+0.2 0.25 0.32 rg
+BT /F2 10 Tf 42 652 Td (MEASURED METRICS) Tj ET
+0.25 0.29 0.35 rg
+BT /F1 9 Tf 42 635 Td (First Contentful Paint: 2.5?s | Largest Contentful Paint: 7.6?s | Total Blocking Time:) Tj ET
+0.25 0.29 0.35 rg
+BT /F1 9 Tf 42 623 Td (1,460?ms | Cumulative Layout Shift: 0 | Speed Index: 8.8?s) Tj ET
+0.62 0.12 0.12 rg
+BT /F2 11 Tf 42 605 Td (VERIFIED ISSUES TO REVIEW) Tj ET
+1 0.96 0.96 rg
+36 521 540 67 re f
+0.72 0.12 0.12 rg
+36 521 4 67 re f
+0.55 0.1 0.1 rg
+BT /F2 10 Tf 50 571 Td (1. Largest Contentful Paint) Tj ET
+0.16 0.19 0.24 rg
+BT /F1 8.5 Tf 50 555 Td (Largest Contentful Paint measured 7.6 s in the mobile PageSpeed audit.) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 544 Td (Suggested next step: I can review the page's critical rendering path and) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 533 Td (prioritize the largest above-the-fold content.) Tj ET
+1 0.96 0.96 rg
+36 446 540 67 re f
+0.72 0.12 0.12 rg
+36 446 4 67 re f
+0.55 0.1 0.1 rg
+BT /F2 10 Tf 50 496 Td (2. First Contentful Paint) Tj ET
+0.16 0.19 0.24 rg
+BT /F1 8.5 Tf 50 480 Td (First Contentful Paint measured 2.5 s in the mobile PageSpeed audit.) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 469 Td (Suggested next step: I can review the critical CSS and initial theme) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 458 Td (requests to identify what delays the first visible content.) Tj ET
+1 0.96 0.96 rg
+36 371 540 67 re f
+0.72 0.12 0.12 rg
+36 371 4 67 re f
+0.55 0.1 0.1 rg
+BT /F2 10 Tf 50 421 Td (3. Speed Index) Tj ET
+0.16 0.19 0.24 rg
+BT /F1 8.5 Tf 50 405 Td (Speed Index measured 8.8 s in the mobile PageSpeed audit.) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 394 Td (Suggested next step: I can inspect the storefront's critical rendering path) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 383 Td (and prioritize the assets that delay visible content.) Tj ET
+1 0.96 0.96 rg
+36 296 540 67 re f
+0.72 0.12 0.12 rg
+36 296 4 67 re f
+0.55 0.1 0.1 rg
+BT /F2 10 Tf 50 346 Td (4. Total Blocking Time) Tj ET
+0.16 0.19 0.24 rg
+BT /F1 8.5 Tf 50 330 Td (Total Blocking Time measured 1.5 s in the mobile PageSpeed audit.) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 319 Td (Suggested next step: I can inspect theme and third-party scripts and) Tj ET
+0.13 0.35 0.27 rg
+BT /F1 8.5 Tf 50 308 Td (identify non-critical work that can be deferred.) Tj ET
+0.82 0.84 0.87 rg
+36 50 540 1 re f
+0.24 0.28 0.34 rg
+BT /F2 8 Tf 42 38 Td (Prepared by Himanshu Soni | Shopify Performance Developer) Tj ET
+0.08 0.32 0.58 rg
+BT /F1 8 Tf 42 25 Td (https://himanshusoni-lilac.vercel.app/) Tj ET
+0.38 0.41 0.46 rg
+BT /F1 7 Tf 42 12 Td (One PageSpeed Insights run; results vary. No sales or conversion impact is inferred.) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000000321 00000 n 
+0000000396 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+3628
+%%EOF

@@ -184,8 +184,11 @@ async function runLeadGeneration(options = {}) {
   console.log(`🏢 Candidates Evaluated      : ${stats.candidates}`);
   console.log(`🚫 Excluded / Past History    : ${stats.excluded}`);
   console.log(`🔄 Existing Duplicates       : ${stats.duplicates}`);
-  console.log(`👥 Employee Size Verified    : ${stats.employeeVerified} (>= 30 verified)`);
-  console.log(`📉 Employee Size Too Low     : ${stats.employeeTooLow} (< 30 rejected)`);
+  const employeeThresholdLabel = stats.minEmployeeCount
+    ? `>= ${stats.minEmployeeCount} employees`
+    : "filter disabled";
+  console.log(`👥 Employee Size Verified    : ${stats.employeeVerified} (${employeeThresholdLabel})`);
+  console.log(`📉 Employee Size Too Low     : ${stats.employeeTooLow} (below threshold)`);
   console.log(`❓ Employee Size Uncertain   : ${stats.employeeUncertain} (Needs verification)`);
   console.log(`⚠️  Employee Size Conflicting : ${stats.employeeConflicting}`);
   console.log(`⭐ Qualified (Score >= ${minRelevance}) : ${stats.qualified}`);

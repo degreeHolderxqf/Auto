@@ -175,7 +175,6 @@ function normalizeErrorValue(value) {
 function sendJson(res, statusCode, data) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin, X-Requested-With");
   res.end(JSON.stringify(data));
@@ -335,7 +334,6 @@ module.exports = async function handler(req, res) {
   const method = req.method || "GET";
 
   // CORS preflight
-  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, Origin, X-Requested-With");
 
@@ -346,8 +344,26 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const saasAuthRoutes = require("./api/saasAuthRoutes");
+    if (await saasAuthRoutes.handleSaasAuthRoute(req, res, pathname, { parseBody, sendJson })) return;
+
+    const isCronWorker = pathname === "/api/email/batch/worker" && method === "POST";
+    if (isCronWorker) {
+      if (!saasAuthRoutes.authorizeCronRequest(req)
+        && !await saasAuthRoutes.authenticateLegacyRequest(req, res, sendJson)) return;
+    } else if (pathname !== "/health" && pathname !== "/api/health"
+      && !await saasAuthRoutes.authenticateLegacyRequest(req, res, sendJson)) return;
+
     const templateRoutes = require("./api/emailTemplateRoutes");
     if (await templateRoutes.handleEmailTemplateRoute(req, res, pathname, { parseBody, sendJson, sendError })) return;
+    if (pathname.startsWith("/api/merchant/audits")) {
+      if (!db) {
+        sendError(res, 503, "Performance audits are unavailable without the database");
+        return;
+      }
+      const auditRoutes = require("./api/storePerformanceAuditRoutes");
+      if (await auditRoutes.handleStorePerformanceAuditRoute(req, res, pathname, { parseBody, sendJson, sendError })) return;
+    }
 
     // 1. Health (always works)
     if (pathname === "/health" || pathname === "/api/health") {
@@ -478,6 +494,14 @@ module.exports = async function handler(req, res) {
     // 5. Companies
     if (pathname === "/api/companies" && method === "GET") {
       const status = url.searchParams.get("status") || undefined;
+      const source = url.searchParams.get("source") || undefined;
+      const search = (url.searchParams.get("search") || "").trim().toLowerCase();
+      const limitParam = url.searchParams.get("limit");
+      const limit = limitParam && limitParam !== "all" ? parseInt(limitParam, 10) : undefined;
+      if (limit !== undefined && (!Number.isInteger(limit) || limit < 1 || limit > 10000)) {
+        sendError(res, 400, "limit must be 'all' or an integer between 1 and 10000");
+        return;
+      }
       let companies = getCompaniesFallback().map(convertRevenueToStoreCurrency).map((company) => {
         const calculatedRevenue = company.estimated_monthly_revenue !== null && company.estimated_monthly_revenue !== undefined
           ? formatRevenueValue(company.estimated_monthly_revenue, company.revenue_currency)
@@ -487,7 +511,32 @@ module.exports = async function handler(req, res) {
           estimated_revenue: calculatedRevenue || company.estimated_revenue || null
         };
       });
+      if ((!source || source === "MERCHANT_UPLOAD") && db) {
+        const merchantLeads = require("./services/merchantIngestion").getMerchantLeads({ limit: 10000 });
+        const merchantById = new Map(merchantLeads.map((lead) => [lead.id, lead]));
+        companies = companies.map((company) => {
+          const merchant = merchantById.get(company.id);
+          return merchant ? {
+            ...company,
+            email: merchant.contact_email,
+            contact_email: merchant.contact_email,
+            website_url: merchant.website_url,
+            installed_apps: merchant.installed_apps,
+            tech_stack: merchant.tech_stack,
+            store_description: merchant.store_description,
+            product_count: merchant.product_count
+          } : company;
+        });
+      }
       if (status) companies = companies.filter((c) => c.status === status);
+      if (source) companies = companies.filter((c) => c.source === source);
+      if (search) {
+        companies = companies.filter((company) =>
+          [company.name, company.domain, company.city, company.shopify_services]
+            .some((value) => String(value || "").toLowerCase().includes(search))
+        );
+      }
+      if (limit !== undefined) companies = companies.slice(0, limit);
       sendJson(res, 200, { success: true, count: companies.length, companies });
       return;
     }

@@ -4,7 +4,7 @@ const config = require("../config");
  * Strict Evidence-Based Employee Count Verification Service
  * 
  * Rules:
- * 1. Configurable employee threshold via .env (MIN_EMPLOYEE_COUNT, default: 30).
+ * 1. Configurable employee threshold via .env (MIN_EMPLOYEE_COUNT, disabled by default).
  *    If MIN_EMPLOYEE_COUNT=0 or disabled/false/null, employee count is optional and won't block qualification.
  * 2. Source Priority: LinkedIn (Primary) -> Official Website / About / Careers / Directory (Secondary).
  * 3. Range handling when threshold is enabled (e.g., 30):

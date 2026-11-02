@@ -305,6 +305,7 @@ module.exports = {
   collectEmails,
   collectSocialLinks,
   fetchPageWithRobots,
+  readRobots,
   USER_AGENT,
   MIN_REQUEST_GAP_MS
 };

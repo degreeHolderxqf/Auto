@@ -907,6 +907,41 @@ function runMigrations(db) {
     );
   `);
 
+  // Human-reviewed Shopify merchant performance audit drafts.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS merchant_performance_audits (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      website_url TEXT NOT NULL,
+      strategy TEXT NOT NULL DEFAULT 'mobile',
+      status TEXT NOT NULL DEFAULT 'ANALYZING',
+      email_mode TEXT NOT NULL,
+      performance_score INTEGER,
+      findings_json TEXT NOT NULL DEFAULT '[]',
+      metrics_json TEXT NOT NULL DEFAULT '{}',
+      detailed_report_json TEXT NOT NULL DEFAULT '{}',
+      email_subject TEXT,
+      email_body TEXT,
+      approved_at TEXT,
+      sent_at TEXT,
+      message_id TEXT,
+      error TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_merchant_audits_company
+      ON merchant_performance_audits(company_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_merchant_audits_status
+      ON merchant_performance_audits(status, created_at);
+  `);
+  const auditColumns = db.prepare("PRAGMA table_info(merchant_performance_audits)").all()
+    .map((column) => column.name);
+  if (!auditColumns.includes("detailed_report_json")) {
+    db.exec("ALTER TABLE merchant_performance_audits ADD COLUMN detailed_report_json TEXT NOT NULL DEFAULT '{}'");
+  }
+
 }
 
 module.exports = { runMigrations };

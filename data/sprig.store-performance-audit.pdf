@@ -1,0 +1,105 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1961 >>
+stream
+BT
+/F1 10 Tf
+50 790 Td
+14 TL
+(Shopify Store Performance Audit) Tj
+T*
+(Store: Buy Premium Mobile Accessories Online in India | Sprig Store \(sprig.store\)) Tj
+T*
+(Website: https://sprig.store/) Tj
+T*
+(Source: Google PageSpeed Insights / Lighthouse \(mobile\)) Tj
+T*
+(Performance score: 18/100) Tj
+T*
+(Audit date: 2026-10-26 18:29:10) Tj
+T*
+(Observed metrics) Tj
+T*
+(First Contentful Paint: 3.5?s) Tj
+T*
+(Largest Contentful Paint: 9.0?s) Tj
+T*
+(Total Blocking Time: 730?ms) Tj
+T*
+(Cumulative Layout Shift: 0.728) Tj
+T*
+(Speed Index: 11.9?s) Tj
+T*
+(Verified observations and suggested improvements) Tj
+T*
+(1. Largest Contentful Paint) Tj
+T*
+(Largest Contentful Paint measured 9.0 s in the mobile PageSpeed audit.) Tj
+T*
+(Suggested improvement: I can review the page's critical rendering path and prioritize) Tj
+T*
+(the largest above-the-fold content.) Tj
+T*
+(Source: Google PageSpeed Insights / Lighthouse) Tj
+T*
+(2. First Contentful Paint) Tj
+T*
+(First Contentful Paint measured 3.5 s in the mobile PageSpeed audit.) Tj
+T*
+(Suggested improvement: I can review the critical CSS and initial theme requests to) Tj
+T*
+(identify what delays the first visible content.) Tj
+T*
+(Source: Google PageSpeed Insights / Lighthouse) Tj
+T*
+(3. Speed Index) Tj
+T*
+(Speed Index measured 11.9 s in the mobile PageSpeed audit.) Tj
+T*
+(Suggested improvement: I can inspect the storefront's critical rendering path and) Tj
+T*
+(prioritize the assets that delay visible content.) Tj
+T*
+(Source: Google PageSpeed Insights / Lighthouse) Tj
+T*
+(4. Total Blocking Time) Tj
+T*
+(Total Blocking Time measured 0.7 s in the mobile PageSpeed audit.) Tj
+T*
+(Suggested improvement: I can inspect theme and third-party scripts and identify) Tj
+T*
+(non-critical work that can be deferred.) Tj
+T*
+(Source: Google PageSpeed Insights / Lighthouse) Tj
+T*
+(This report reflects a single PageSpeed Insights run. Results vary with test conditions) Tj
+T*
+(and are not a guarantee of business outcomes.) Tj
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+2324
+%%EOF
