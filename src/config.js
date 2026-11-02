@@ -14,6 +14,7 @@ if (!isVercelRuntime) {
   }
 }
 
+
 const rootDir = path.resolve(__dirname, "..");
 const runtimeMode = isVercelRuntime ? "PRODUCTION" : "LOCAL";
 
