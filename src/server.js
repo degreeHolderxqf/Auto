@@ -21,32 +21,14 @@ const { runDiscovery } = require("./workflows/discoverWorkflow");
 const { runResearch, researchCompany } = require("./workflows/researchWorkflow");
 const { runLeadGeneration } = require("./workflows/leadWorkflow");
 const { runSend } = require("./workflows/sendWorkflow");
+const { parseRequestBody } = require("./utils/requestBody");
 const {
   estimateStoreRevenue,
   formatRevenueValue,
   convertRevenueToStoreCurrency
 } = require("./services/revenueEstimator");
 
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => {
-      body += chunk.toString();
-      if (body.length > 15 * 1024 * 1024) {
-        reject(new Error("Request body too large"));
-      }
-    });
-    req.on("end", () => {
-      if (!body) return resolve({});
-      try {
-        resolve(JSON.parse(body));
-      } catch (err) {
-        resolve({});
-      }
-    });
-    req.on("error", (err) => reject(err));
-  });
-}
+const parseBody = parseRequestBody;
 
 function normalizeErrorValue(value) {
   if (value === null || value === undefined) return "Unknown error";
@@ -2017,7 +1999,13 @@ function startServer(port = process.env.PORT || 3000) {
       res.end(html);
     } catch (err) {
       logger.error(`API Error handling ${req.method} ${pathname}`, err);
-      sendError(res, 500, "Internal server error", err.message);
+      const statusCode = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+      sendError(
+        res,
+        statusCode,
+        statusCode === 500 ? "Internal server error" : err.message,
+        statusCode === 500 ? err.message : null
+      );
     }
   });
 

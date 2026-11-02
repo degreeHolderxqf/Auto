@@ -7,7 +7,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node --test test/saas-auth.test.js test/saas-access.test.js test/saas-auth-routes.test.js",
+    "test": "node --test test/saas-auth.test.js test/saas-access.test.js test/saas-auth-routes.test.js test/request-body.test.js",
     "migrate:saas": "node src/db/runSaasMigration.js",
     "start:workflow": "node newest.js",
     "discover": "node src/cli.js discover",

@@ -24,6 +24,7 @@ const path = require("node:path");
 const os = require("node:os");
 const fs = require("node:fs");
 const resumeStorage = require("./services/resumeStorage");
+const { parseRequestBody } = require("./utils/requestBody");
 
 // On Vercel, the only writable directory is /tmp. Route the SQLite database there.
 const IS_VERCEL = process.env.VERCEL === "1";
@@ -144,20 +145,7 @@ function getSettings() {
   return getEnvSettings();
 }
 
-function parseBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => {
-      body += chunk.toString();
-      if (body.length > 15 * 1024 * 1024) reject(new Error("Request body too large"));
-    });
-    req.on("end", () => {
-      if (!body) return resolve({});
-      try { resolve(JSON.parse(body)); } catch (err) { resolve({}); }
-    });
-    req.on("error", reject);
-  });
-}
+const parseBody = parseRequestBody;
 
 function normalizeErrorValue(value) {
   if (value === null || value === undefined) return "Unknown error";
@@ -1453,6 +1441,12 @@ module.exports = async function handler(req, res) {
 
   } catch (err) {
     safeLogger.error("API Error handling " + method + " " + pathname, err);
-    sendError(res, 500, "Internal server error", err.message || "An unexpected error occurred");
+    const statusCode = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+    sendError(
+      res,
+      statusCode,
+      statusCode === 500 ? "Internal server error" : err.message,
+      statusCode === 500 ? (err.message || "An unexpected error occurred") : null
+    );
   }
 };
