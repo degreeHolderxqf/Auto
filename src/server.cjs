@@ -331,6 +331,15 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  if (method === "GET" && pathname === "/") {
+    sendJson(res, 200, {
+      status: "ok",
+      service: "Bulk Leads API",
+      health: "/health"
+    });
+    return;
+  }
+
   try {
     const saasAuthRoutes = require("./api/saasAuthRoutes");
     if (await saasAuthRoutes.handleSaasAuthRoute(req, res, pathname, { parseBody, sendJson })) return;

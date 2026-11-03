@@ -163,6 +163,15 @@ function startServer(port = process.env.PORT || 3000) {
     }
 
     try {
+      if (req.method === "GET" && pathname === "/") {
+        sendJson(res, 200, {
+          status: "ok",
+          service: "Bulk Leads API",
+          health: "/health"
+        });
+        return;
+      }
+
       if (await handleSaasAuthRoute(req, res, pathname, { parseBody, sendJson })) return;
 
       const isCronWorker = pathname === "/api/email/batch/worker" && req.method === "POST";
